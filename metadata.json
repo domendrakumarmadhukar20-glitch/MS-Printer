@@ -1,0 +1,6 @@
+{
+  "name": "MS PRINTERS — Any Time Print (ATP) Smart Kiosk",
+  "description": "Commercial 24/7 self-service Any Time Print (ATP) Kiosk System with online payment, HP LaserJet M126nw hardware controller, paper stock management, digital advertising, and central monitoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
