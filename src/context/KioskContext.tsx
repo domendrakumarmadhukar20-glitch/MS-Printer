@@ -264,59 +264,70 @@ const INITIAL_PRICING: PricingRule[] = [
   }
 ];
 
+function safeGetStorage(key: string, defaultValue: any) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = window.localStorage.getItem(key);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(defaultValue) && !Array.isArray(parsed)) return defaultValue;
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn(`[MS Printers Storage] Error reading ${key}:`, e);
+  }
+  return defaultValue;
+}
+
+function safeSetStorage(key: string, value: any) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    }
+  } catch (e) {
+    // Silently continue in sandboxed iframe or private browsing
+  }
+}
+
 const KioskContext = createContext<KioskContextType | null>(null);
 
 export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [machines, setMachines] = useState<KioskMachine[]>(() => {
-    try {
-      const stored = localStorage.getItem('msprinters_machines');
-      return stored ? JSON.parse(stored) : INITIAL_MACHINES;
-    } catch {
-      return INITIAL_MACHINES;
-    }
+    const loaded = safeGetStorage('msprinters_machines', INITIAL_MACHINES);
+    return Array.isArray(loaded) && loaded.length > 0 ? loaded : INITIAL_MACHINES;
   });
 
   const [currentMachineId, setCurrentMachineId] = useState<string>('ATP-ABC-001');
 
   const [jobs, setJobs] = useState<PrintJob[]>(() => {
-    try {
-      const stored = localStorage.getItem('msprinters_jobs');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    const loaded = safeGetStorage('msprinters_jobs', []);
+    return Array.isArray(loaded) ? loaded : [];
   });
 
   const [paperTransactions, setPaperTransactions] = useState<PaperTransaction[]>(() => {
-    try {
-      const stored = localStorage.getItem('msprinters_paper_tx');
-      return stored ? JSON.parse(stored) : [
-        {
-          id: 'TX-INIT-01',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          machine_id: 'ATP-ABC-001',
-          printer_id: 'HP-M126NW-01',
-          tray_id: 'TRAY-01-ABC1',
-          type: 'ADD',
-          amount: 500,
-          opening_stock: 0,
-          closing_stock: 500,
-          admin_name: 'SuperAdmin (MS Printers)',
-          reason: 'Initial Kiosk Commissioning & Paper Load'
-        }
-      ];
-    } catch {
-      return [];
-    }
+    const defaultTx: PaperTransaction[] = [
+      {
+        id: 'TX-INIT-01',
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
+        machine_id: 'ATP-ABC-001',
+        printer_id: 'HP-M126NW-01',
+        tray_id: 'TRAY-01-ABC1',
+        type: 'ADD',
+        amount: 500,
+        opening_stock: 0,
+        closing_stock: 500,
+        admin_name: 'SuperAdmin (MS Printers)',
+        reason: 'Initial Kiosk Commissioning & Paper Load'
+      }
+    ];
+    const loaded = safeGetStorage('msprinters_paper_tx', defaultTx);
+    return Array.isArray(loaded) ? loaded : defaultTx;
   });
 
   const [advertisements, setAdvertisements] = useState<Advertisement[]>(() => {
-    try {
-      const stored = localStorage.getItem('msprinters_ads');
-      return stored ? JSON.parse(stored) : INITIAL_ADS;
-    } catch {
-      return INITIAL_ADS;
-    }
+    const loaded = safeGetStorage('msprinters_ads', INITIAL_ADS);
+    return Array.isArray(loaded) && loaded.length > 0 ? loaded : INITIAL_ADS;
   });
 
   const [pricingRules, setPricingRules] = useState<PricingRule[]>(INITIAL_PRICING);
@@ -345,21 +356,21 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [kioskActivityMode, setKioskActivityMode] = useState<'ADS' | 'INTERACTIVE' | 'PRINTING' | 'MAINTENANCE'>('ADS');
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync state to LocalStorage
+  // Sync state to LocalStorage safely
   useEffect(() => {
-    localStorage.setItem('msprinters_machines', JSON.stringify(machines));
+    safeSetStorage('msprinters_machines', machines);
   }, [machines]);
 
   useEffect(() => {
-    localStorage.setItem('msprinters_jobs', JSON.stringify(jobs));
+    safeSetStorage('msprinters_jobs', jobs);
   }, [jobs]);
 
   useEffect(() => {
-    localStorage.setItem('msprinters_paper_tx', JSON.stringify(paperTransactions));
+    safeSetStorage('msprinters_paper_tx', paperTransactions);
   }, [paperTransactions]);
 
   useEffect(() => {
-    localStorage.setItem('msprinters_ads', JSON.stringify(advertisements));
+    safeSetStorage('msprinters_ads', advertisements);
   }, [advertisements]);
 
   const addAgentLog = useCallback((level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS', message: string) => {
@@ -389,7 +400,7 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, BRAND_CONFIG.idleAdTimeoutSeconds * 1000);
   }, []);
 
-  const currentMachine = machines.find(m => m.id === currentMachineId) || machines[0];
+  const currentMachine = (machines && machines.length > 0 ? machines.find(m => m.id === currentMachineId) || machines[0] : null) || INITIAL_MACHINES[0];
 
   // Price Calculation Engine
   const calculatePrice = useCallback((

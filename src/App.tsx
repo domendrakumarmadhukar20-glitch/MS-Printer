@@ -3,7 +3,7 @@
  * Target Domain: msprinter.in
  */
 
-import React, { useState } from 'react';
+import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { KioskProvider } from './context/KioskContext';
 import { Header } from './components/common/Header';
 import { StudentMobileApp } from './components/student/StudentMobileApp';
@@ -24,17 +24,83 @@ import {
   ArrowRight,
   Zap,
   CheckCircle2,
-  Lock
+  Lock,
+  RefreshCw
 } from 'lucide-react';
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Kiosk System Runtime Error:', error, errorInfo);
+  }
+
+  handleReset = () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.clear();
+      }
+    } catch {
+      // ignore
+    }
+    window.location.reload();
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-4 shadow-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center border border-amber-500/30 text-2xl font-black">
+              MS
+            </div>
+            <h1 className="text-xl font-bold text-white">MS PRINTERS — Kiosk System</h1>
+            <p className="text-xs text-slate-400">
+              A temporary display error occurred. Click below to refresh the system state.
+            </p>
+            <div className="p-3 bg-slate-950 rounded-xl text-[11px] font-mono text-rose-400 border border-slate-800 text-left overflow-x-auto">
+              {this.state.error?.message || 'Unexpected application render state'}
+            </div>
+            <button
+              onClick={this.handleReset}
+              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Reset & Reload Kiosk System</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY'>('STUDENT');
 
   return (
-    <KioskProvider>
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
-        {/* Master Navigation Header */}
-        <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+    <ErrorBoundary>
+      <KioskProvider>
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
+          {/* Master Navigation Header */}
+          <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* Quick Launch Bar / Overview Strip */}
         <div className="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2 text-xs">
@@ -91,5 +157,6 @@ export default function App() {
         </footer>
       </div>
     </KioskProvider>
+  </ErrorBoundary>
   );
 }
