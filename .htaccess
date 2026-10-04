@@ -2,10 +2,19 @@
   RewriteEngine On
   RewriteBase /
 
-  # Handle assets routing to dist/assets/
+  # 1. Redirect root request to dist/index.html if dist exists
+  RewriteCond %{DOCUMENT_ROOT}/dist/index.html -f
+  RewriteRule ^$ dist/index.html [L]
+
+  RewriteCond %{DOCUMENT_ROOT}/dist/index.html -f
+  RewriteRule ^index\.html$ dist/index.html [L]
+
+  # 2. Route assets to dist/assets/
+  RewriteCond %{DOCUMENT_ROOT}/dist/assets/$1 -f
   RewriteRule ^assets/(.*)$ dist/assets/$1 [L]
 
-  # If dist/index.html exists and requested file is not found
+  # 3. SPA Fallback routing
+  RewriteCond %{DOCUMENT_ROOT}/dist/index.html -f
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^(.*)$ dist/index.html [L]
