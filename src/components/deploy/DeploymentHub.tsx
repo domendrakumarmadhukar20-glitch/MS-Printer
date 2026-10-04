@@ -15,6 +15,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { BRAND_CONFIG } from '../../config/branding';
+import { VSCodeTerminalGuide } from './VSCodeTerminalGuide';
 
 export const DeploymentHub: React.FC = () => {
   const [activeCodeTab, setActiveCodeTab] = useState<'AGENT_PY' | 'SERVICE_BAT' | 'KIOSK_REG' | 'HOSTINGER_DNS' | 'WEBHOOK_TS' | 'GITHUB_HOSTINGER'>('GITHUB_HOSTINGER');
@@ -484,6 +485,9 @@ DONE! Whenever you push to GitHub, Hostinger automatically updates msprinter.in!
           </a>
         </div>
       </div>
+
+      {/* Visual VS Code Screenshot & Terminal Command Runner Guide */}
+      <VSCodeTerminalGuide />
 
       {/* Code Viewer Tabs */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
