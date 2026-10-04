@@ -115,6 +115,19 @@ windows_kiosk_lockdown.reg
 
 ---
 
+## ⚡ 1-Click Hostinger Live Deployment (`hostinger_deploy.zip`)
+
+For instant, 100% foolproof deployment on Hostinger without waiting for build pipelines:
+
+1. Download **`hostinger_deploy.zip`** directly from the Deployment Hub in the app or repository root.
+2. In [Hostinger hPanel](https://hpanel.hostinger.com) ➔ **Websites** ➔ **msprinter.in** ➔ **File Manager**.
+3. Open **`public_html`** folder.
+4. Click **Upload** ➔ Select `hostinger_deploy.zip`.
+5. Right-click `hostinger_deploy.zip` ➔ **Extract** (into `public_html`).
+6. **Done!** Open `https://msprinter.in` — your kiosk website is instantly live!
+
+---
+
 ## 🔄 Connect GitHub to Hostinger (Auto-Deployment CI/CD)
 
 Whenever you push to GitHub, code automatically builds and updates **`msprinter.in`** on Hostinger:
