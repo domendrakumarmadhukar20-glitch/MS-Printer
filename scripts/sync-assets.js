@@ -16,3 +16,28 @@ if (fs.existsSync(distAssets)) {
   }
   console.log(`[Sync] Copied ${files.length} production assets to /assets and /public/assets for Hostinger`);
 }
+
+// Copy .htaccess to dist
+const htaccessPath = path.resolve('public/.htaccess');
+if (fs.existsSync(htaccessPath)) {
+  fs.copyFileSync(htaccessPath, path.resolve('dist/.htaccess'));
+  fs.copyFileSync(htaccessPath, path.resolve('.htaccess'));
+  console.log('[Sync] Synchronized .htaccess with cache-prevention headers');
+}
+
+// Copy manifest.json to dist
+const manifestPath = path.resolve('public/manifest.json');
+if (fs.existsSync(manifestPath)) {
+  fs.copyFileSync(manifestPath, path.resolve('dist/manifest.json'));
+}
+
+// Add cache buster query version to dist/index.html so Hostinger CDN cannot serve stale cache
+const distIndexHtml = path.resolve('dist/index.html');
+if (fs.existsSync(distIndexHtml)) {
+  let html = fs.readFileSync(distIndexHtml, 'utf8');
+  const v = Date.now();
+  html = html.replace(/\/assets\/index\.js(\?v=[^"']*)?/g, `/assets/index.js?v=${v}`);
+  html = html.replace(/\/assets\/index\.css(\?v=[^"']*)?/g, `/assets/index.css?v=${v}`);
+  fs.writeFileSync(distIndexHtml, html, 'utf8');
+  console.log(`[Sync] Injected clean cache-buster ?v=${v} into dist/index.html`);
+}
