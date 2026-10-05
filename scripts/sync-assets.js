@@ -31,13 +31,23 @@ if (fs.existsSync(manifestPath)) {
   fs.copyFileSync(manifestPath, path.resolve('dist/manifest.json'));
 }
 
-// Add cache buster query version to dist/index.html so Hostinger CDN cannot serve stale cache
+// Add cache buster query version to dist/index.html and root index.html so Hostinger CDN cannot serve stale cache
 const distIndexHtml = path.resolve('dist/index.html');
+const rootIndexHtml = path.resolve('index.html');
+const v = Date.now();
+
 if (fs.existsSync(distIndexHtml)) {
   let html = fs.readFileSync(distIndexHtml, 'utf8');
-  const v = Date.now();
   html = html.replace(/\/assets\/index\.js(\?v=[^"']*)?/g, `/assets/index.js?v=${v}`);
   html = html.replace(/\/assets\/index\.css(\?v=[^"']*)?/g, `/assets/index.css?v=${v}`);
   fs.writeFileSync(distIndexHtml, html, 'utf8');
   console.log(`[Sync] Injected clean cache-buster ?v=${v} into dist/index.html`);
+}
+
+if (fs.existsSync(rootIndexHtml)) {
+  let html = fs.readFileSync(rootIndexHtml, 'utf8');
+  html = html.replace(/\/assets\/index\.js(\?v=[^"']*)?/g, `/assets/index.js?v=${v}`);
+  html = html.replace(/\/assets\/index\.css(\?v=[^"']*)?/g, `/assets/index.css?v=${v}`);
+  fs.writeFileSync(rootIndexHtml, html, 'utf8');
+  console.log(`[Sync] Injected clean cache-buster ?v=${v} into root index.html`);
 }
