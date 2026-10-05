@@ -93,14 +93,93 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY'>('STUDENT');
+  const [overrideView, setOverrideView] = useState<'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY' | null>(null);
+
+  const getInitialTab = (): 'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY' => {
+    if (typeof window === 'undefined') return 'STUDENT';
+    const path = window.location.pathname.toLowerCase();
+    const search = new URLSearchParams(window.location.search);
+    const mode = search.get('mode')?.toLowerCase();
+
+    if (path.startsWith('/m/') || path === '/student' || path === '/print' || mode === 'student') {
+      return 'STUDENT';
+    }
+    if (path.startsWith('/kiosk') || mode === 'kiosk') {
+      return 'KIOSK';
+    }
+    if (path.startsWith('/admin') || mode === 'admin') {
+      return 'ADMIN';
+    }
+    if (path.startsWith('/deploy') || mode === 'deploy') {
+      return 'DEPLOY';
+    }
+    if (path.startsWith('/simulator') || mode === 'simulator') {
+      return 'SIMULATOR';
+    }
+    return 'STUDENT';
+  };
+
+  const [activeTab, setActiveTab] = useState<'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY'>(getInitialTab);
+
+  const isPureStudentMode = () => {
+    if (overrideView) return false;
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname.toLowerCase();
+    const search = new URLSearchParams(window.location.search);
+    const mode = search.get('mode')?.toLowerCase();
+    return path.startsWith('/m/') || path === '/student' || path === '/print' || mode === 'student';
+  };
+
+  const isPureKioskMode = () => {
+    if (overrideView) return false;
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname.toLowerCase();
+    const search = new URLSearchParams(window.location.search);
+    const mode = search.get('mode')?.toLowerCase();
+    return (path.startsWith('/kiosk') || mode === 'kiosk') && !search.has('view');
+  };
+
+  // If student scanned QR code on kiosk machine, show ONLY the student mobile portal
+  if (isPureStudentMode()) {
+    return (
+      <ErrorBoundary>
+        <KioskProvider>
+          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
+            <main className="flex-1 w-full">
+              <StudentMobileApp 
+                isPureStudentMode={true} 
+                onAdminSwitch={() => setOverrideView('ADMIN')} 
+              />
+            </main>
+          </div>
+        </KioskProvider>
+      </ErrorBoundary>
+    );
+  }
+
+  // If kiosk machine is running on the physical monitor, show ONLY fullscreen kiosk screen
+  if (isPureKioskMode()) {
+    return (
+      <ErrorBoundary>
+        <KioskProvider>
+          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
+            <main className="flex-1 w-full">
+              <KioskScreen />
+            </main>
+          </div>
+        </KioskProvider>
+      </ErrorBoundary>
+    );
+  }
+
+  const currentTab = overrideView || activeTab;
 
   return (
     <ErrorBoundary>
       <KioskProvider>
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
           {/* Master Navigation Header */}
-          <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Header activeTab={currentTab} setActiveTab={(t) => { setOverrideView(null); setActiveTab(t); }} />
 
         {/* Quick Launch Bar / Overview Strip */}
         <div className="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2 text-xs">
@@ -111,11 +190,11 @@ export default function App() {
                 ACTIVE VIEW:
               </span>
               <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold px-2 py-0.5 rounded text-[11px]">
-                {activeTab === 'STUDENT' && '📱 Student Mobile Web App (Scan QR → Upload → Pay → Print)'}
-                {activeTab === 'KIOSK' && '🖥️ Kiosk Fullscreen Monitor (Idle Ads & Live Spooling)'}
-                {activeTab === 'ADMIN' && '⚙️ Central Admin Management & Paper Stock Audit'}
-                {activeTab === 'SIMULATOR' && '🖨️ HP LaserJet M126nw & Hardware Bus Simulator'}
-                {activeTab === 'DEPLOY' && '📦 Windows ATP Agent Script & Hostinger DNS Hub'}
+                {currentTab === 'STUDENT' && '📱 Student Mobile Web App (Scan QR → Upload → Pay → Print)'}
+                {currentTab === 'KIOSK' && '🖥️ Kiosk Fullscreen Monitor (Idle Ads & Live Spooling)'}
+                {currentTab === 'ADMIN' && '⚙️ Central Admin Management & Paper Stock Audit'}
+                {currentTab === 'SIMULATOR' && '🖨️ HP LaserJet M126nw & Hardware Bus Simulator'}
+                {currentTab === 'DEPLOY' && '📦 Windows ATP Agent Script & Hostinger DNS Hub'}
               </span>
             </div>
 
@@ -131,15 +210,15 @@ export default function App() {
 
         {/* Main Tab View Rendering */}
         <main className="flex-1 w-full">
-          {activeTab === 'STUDENT' && <StudentMobileApp />}
-          {activeTab === 'KIOSK' && (
+          {currentTab === 'STUDENT' && <StudentMobileApp />}
+          {currentTab === 'KIOSK' && (
             <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6">
               <KioskScreen />
             </div>
           )}
-          {activeTab === 'ADMIN' && <AdminDashboard />}
-          {activeTab === 'SIMULATOR' && <HardwareSimulator />}
-          {activeTab === 'DEPLOY' && <DeploymentHub />}
+          {currentTab === 'ADMIN' && <AdminDashboard />}
+          {currentTab === 'SIMULATOR' && <HardwareSimulator />}
+          {currentTab === 'DEPLOY' && <DeploymentHub />}
         </main>
 
         {/* Commercial Footer */}

@@ -1,0 +1,11 @@
+{
+  "machine_id": "ATP-ABC-001",
+  "domain": "msprinter.in",
+  "api_endpoint": "https://msprinter.in/api/kiosk",
+  "printer_name": "HP LaserJet Pro MFP M126nw",
+  "poll_interval_seconds": 2,
+  "heartbeat_interval_seconds": 15,
+  "auto_duplex": false,
+  "tray_capacity": 500,
+  "kiosk_mode": "fullscreen"
+}

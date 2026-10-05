@@ -27,12 +27,17 @@ import {
   Eye,
   Undo2,
   Calendar,
-  Building
+  Building,
+  HardDrive,
+  Monitor,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useKiosk } from '../../context/KioskContext';
 import { BRAND_CONFIG } from '../../config/branding';
 import { soundService } from '../../services/soundService';
 import { Advertisement, PricingRule } from '../../types';
+import { getRazorpayConfig, saveRazorpayConfig } from '../../services/razorpayService';
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -56,7 +61,28 @@ export const AdminDashboard: React.FC = () => {
   } = useKiosk();
 
   // Admin active sub-tab
-  const [adminTab, setAdminTab] = useState<'OVERVIEW' | 'MACHINES' | 'PAPER' | 'ADS' | 'JOBS' | 'PRICING'>('OVERVIEW');
+  const [adminTab, setAdminTab] = useState<'OVERVIEW' | 'MACHINES' | 'PAPER' | 'ADS' | 'JOBS' | 'PRICING' | 'RAZORPAY' | 'INSTALLER'>('OVERVIEW');
+
+  // Razorpay Gateway State
+  const initialRzp = getRazorpayConfig();
+  const [rzpKeyId, setRzpKeyId] = useState<string>(initialRzp.keyId);
+  const [rzpKeySecret, setRzpKeySecret] = useState<string>(initialRzp.keySecret || '');
+  const [rzpIsLive, setRzpIsLive] = useState<boolean>(initialRzp.isLiveMode);
+  const [rzpWebhookSecret, setRzpWebhookSecret] = useState<string>(initialRzp.webhookSecret || 'whsec_live_msprinters');
+  const [rzpSavedMsg, setRzpSavedMsg] = useState<string | null>(null);
+  const [copiedWebhook, setCopiedWebhook] = useState<boolean>(false);
+
+  const handleSaveRazorpay = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveRazorpayConfig({
+      keyId: rzpKeyId.trim(),
+      keySecret: rzpKeySecret.trim(),
+      isLiveMode: rzpIsLive,
+      webhookSecret: rzpWebhookSecret.trim()
+    });
+    setRzpSavedMsg('✓ Razorpay Settings saved successfully! Ready for live checkouts.');
+    setTimeout(() => setRzpSavedMsg(null), 4000);
+  };
 
   // Paper Management Modals
   const [showAddPaperModal, setShowAddPaperModal] = useState<boolean>(false);
@@ -293,6 +319,31 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           Pricing Engine
+        </button>
+
+        <button
+          onClick={() => setAdminTab('RAZORPAY')}
+          className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 ${
+            adminTab === 'RAZORPAY'
+              ? 'bg-emerald-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <CreditCard className="w-3.5 h-3.5" />
+          <span>Razorpay Gateway</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('INSTALLER')}
+          className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 ${
+            adminTab === 'INSTALLER'
+              ? 'bg-sky-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Monitor className="w-3.5 h-3.5" />
+          <span>कियोस्क मशीन इंस्टालर</span>
         </button>
       </div>
 
@@ -865,6 +916,237 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= TAB 7: RAZORPAY PAYMENT GATEWAY SETTINGS ================= */}
+      {adminTab === 'RAZORPAY' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-white">Razorpay Payment Gateway Integration</h2>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
+                    rzpIsLive 
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                      : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                  }`}>
+                    {rzpIsLive ? 'LIVE MODE (असली पेमेंट)' : 'TEST MODE (डेमो / परीक्षण)'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Configure merchant credentials, UPI QR intent, and webhook signature verification for student payments
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 font-mono text-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-emerald-400 font-bold">Checkout Ready</span>
+            </div>
+          </div>
+
+          {rzpSavedMsg && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{rzpSavedMsg}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSaveRazorpay} className="space-y-5 text-xs max-w-2xl">
+            {/* Mode Toggle */}
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-white block">Gateway Environment Mode</span>
+                <span className="text-[11px] text-slate-400">
+                  Switch between Razorpay Test keys (for testing) and Live keys (for real payments)
+                </span>
+              </div>
+              <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setRzpIsLive(false)}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                    !rzpIsLive ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Test Mode
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRzpIsLive(true)}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                    rzpIsLive ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Live Mode
+                </button>
+              </div>
+            </div>
+
+            {/* Key ID */}
+            <div className="space-y-1">
+              <label className="block text-slate-300 font-bold">
+                Razorpay Key ID:
+              </label>
+              <input
+                type="text"
+                value={rzpKeyId}
+                onChange={(e) => setRzpKeyId(e.target.value)}
+                placeholder="rzp_test_... या rzp_live_..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+              />
+              <p className="text-[11px] text-slate-500">
+                Found in Razorpay Dashboard ➔ Settings ➔ API Keys ➔ Key ID
+              </p>
+            </div>
+
+            {/* Key Secret */}
+            <div className="space-y-1">
+              <label className="block text-slate-300 font-bold">
+                Razorpay Key Secret:
+              </label>
+              <input
+                type="password"
+                value={rzpKeySecret}
+                onChange={(e) => setRzpKeySecret(e.target.value)}
+                placeholder="••••••••••••••••••••••••"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+              />
+              <p className="text-[11px] text-slate-500">
+                Kept securely in encrypted browser storage for webhook signature checks
+              </p>
+            </div>
+
+            {/* Webhook Endpoint */}
+            <div className="space-y-1">
+              <label className="block text-slate-300 font-bold">
+                Your Webhook Endpoint URL:
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={`https://${BRAND_CONFIG.domain}/api/razorpay/webhook`}
+                  className="flex-1 bg-slate-950 border border-slate-700 rounded-xl p-3 text-amber-300 font-mono text-xs select-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`https://${BRAND_CONFIG.domain}/api/razorpay/webhook`);
+                    setCopiedWebhook(true);
+                    setTimeout(() => setCopiedWebhook(false), 2000);
+                  }}
+                  className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl flex items-center gap-1.5 transition-all"
+                >
+                  {copiedWebhook ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedWebhook ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Paste this URL in Razorpay Dashboard ➔ Settings ➔ Webhooks (Event: `payment.captured`)
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-6 py-3 rounded-xl text-xs shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5"
+            >
+              Save Razorpay Settings
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* ================= TAB 8: PHYSICAL KIOSK MACHINE INSTALLER ================= */}
+      {adminTab === 'INSTALLER' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
+                <HardDrive className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">कियोस्क मशीन इंस्टालेशन सेंटर (Kiosk Machine Installer)</h2>
+                <p className="text-xs text-slate-400">
+                  HP LaserJet Pro MFP M126nw प्रिंटर + Windows 10/11 PC को 24 घंटे चलने वाले कियोस्क में बदलें
+                </p>
+              </div>
+            </div>
+
+            <a
+              href="/msprinters_kiosk_installer.zip"
+              download="msprinters_kiosk_installer.zip"
+              className="flex items-center gap-2 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-slate-950 font-black text-xs px-5 py-3 rounded-xl shadow-lg shadow-sky-500/20 transition-all transform hover:-translate-y-0.5"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Kiosk Installer ZIP (1-Click)</span>
+            </a>
+          </div>
+
+          {/* Hardware Connection Architecture */}
+          <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2">
+              <Monitor className="w-4 h-4 text-sky-400" />
+              <span>कियोस्क हार्डवेयर कनेक्शन (Wiring & Hardware Setup):</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono">
+              <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center space-y-1">
+                <span className="text-amber-400 font-bold block">1. मॉनिटर</span>
+                <span className="text-slate-300 text-[11px]">टचस्क्रीन या सामान्य LED डिस्प्ले</span>
+              </div>
+              <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center space-y-1">
+                <span className="text-sky-400 font-bold block">2. कंप्यूटर (PC)</span>
+                <span className="text-slate-300 text-[11px]">Windows 10/11 Mini PC या Laptop</span>
+              </div>
+              <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center space-y-1">
+                <span className="text-emerald-400 font-bold block">3. प्रिंटर</span>
+                <span className="text-slate-300 text-[11px]">HP LaserJet Pro MFP M126nw (USB)</span>
+              </div>
+              <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center space-y-1">
+                <span className="text-purple-400 font-bold block">4. इंटरनेट & पॉवर</span>
+                <span className="text-slate-300 text-[11px]">4G Wi-Fi डोंगल + UPS बैकअप</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Step-by-Step Installation Instructions */}
+          <div className="space-y-4 text-xs text-slate-300">
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+              <div className="font-bold text-amber-400 text-sm flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-black">1</span>
+                <span>प्रिंटर ड्राइवर इनस्टॉल करें:</span>
+              </div>
+              <p className="text-slate-400 pl-7">
+                HP LaserJet Pro MFP M126nw प्रिंटर को कंप्यूटर से USB केबल द्वारा जोड़ें। HP का आधिकारिक ड्राइवर इनस्टॉल करें और एक टेस्ट पेज निकालें।
+              </p>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+              <div className="font-bold text-sky-400 text-sm flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-sky-500 text-slate-950 flex items-center justify-center text-xs font-black">2</span>
+                <span>इंस्टालर ज़िप चलाएं:</span>
+              </div>
+              <p className="text-slate-400 pl-7">
+                ऊपर दिए गए नीले बटन से <span className="text-white font-mono font-bold">msprinters_kiosk_installer.zip</span> डाउनलोड करें और Extract करें। फोल्डर में मौजूद <span className="text-amber-400 font-mono font-bold">install_kiosk_machine.bat</span> पर Right-Click करके <b>"Run as administrator"</b> चुनें।
+              </p>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+              <div className="font-bold text-emerald-400 text-sm flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-xs font-black">3</span>
+                <span>कियोस्क चालू हो गया!</span>
+              </div>
+              <p className="text-slate-400 pl-7">
+                डेस्कटॉप पर बना <b>'Launch MS PRINTERS Kiosk'</b> शॉर्टकट कंप्यूटर शुरू होते ही अपने आप फुलस्क्रीन में विज्ञापन और QR कोड दिखाना शुरू कर देगा! छात्र अपने मोबाइल से QR कोड स्कैन करेंगे और प्रिंट सीधे HP प्रिंटर से बाहर आएगा।
+              </p>
             </div>
           </div>
         </div>

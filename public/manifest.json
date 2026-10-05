@@ -1,0 +1,21 @@
+{
+  "short_name": "MS PRINTERS",
+  "name": "MS PRINTERS — Any Time Print (ATP) Kiosk",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/kiosk?mode=kiosk",
+  "background_color": "#020617",
+  "theme_color": "#f59e0b",
+  "display": "fullscreen",
+  "orientation": "landscape"
+}

@@ -474,7 +474,16 @@ DONE! Whenever you push to GitHub, Hostinger automatically updates msprinter.in!
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="/msprinters_kiosk_installer.zip"
+            download="msprinters_kiosk_installer.zip"
+            className="flex items-center gap-2 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-sky-500/20 border border-sky-400/40 transition-all transform hover:-translate-y-0.5"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download Kiosk Machine Installer (.zip)</span>
+          </a>
+
           <a
             href="/hostinger_deploy.zip"
             download="hostinger_deploy.zip"
