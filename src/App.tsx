@@ -11,6 +11,8 @@ import { KioskScreen } from './components/kiosk/KioskScreen';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { HardwareSimulator } from './components/simulator/HardwareSimulator';
 import { DeploymentHub } from './components/deploy/DeploymentHub';
+import { AdminLockScreen } from './components/auth/AdminLockScreen';
+import { RazorpayPoliciesModal, PolicyTab } from './components/common/RazorpayPoliciesModal';
 import { BRAND_CONFIG } from './config/branding';
 import { 
   Printer, 
@@ -94,6 +96,40 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 export default function App() {
   const [overrideView, setOverrideView] = useState<'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY' | null>(null);
+
+  // Operator PIN / Password authentication state (Protected panels: Admin, Kiosk, Simulator, Deploy)
+  const [isOperatorAuth, setIsOperatorAuth] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return sessionStorage.getItem('msprinters_operator_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Razorpay Policies Modal state
+  const [policyModalOpen, setPolicyModalOpen] = useState<boolean>(false);
+  const [policyInitialTab, setPolicyInitialTab] = useState<PolicyTab>('ABOUT');
+
+  const openPolicy = (tab: PolicyTab) => {
+    setPolicyInitialTab(tab);
+    setPolicyModalOpen(true);
+  };
+
+  const handleUnlock = () => {
+    setIsOperatorAuth(true);
+  };
+
+  const handleLockPanels = () => {
+    try {
+      sessionStorage.removeItem('msprinters_operator_auth');
+    } catch {
+      // ignore
+    }
+    setIsOperatorAuth(false);
+    setOverrideView(null);
+    setActiveTab('STUDENT');
+  };
 
   const getInitialTab = (): 'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY' => {
     if (typeof window === 'undefined') return 'STUDENT';
@@ -179,7 +215,12 @@ export default function App() {
       <KioskProvider>
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
           {/* Master Navigation Header */}
-          <Header activeTab={currentTab} setActiveTab={(t) => { setOverrideView(null); setActiveTab(t); }} />
+          <Header 
+            activeTab={currentTab} 
+            setActiveTab={(t) => { setOverrideView(null); setActiveTab(t); }} 
+            isOperatorAuthenticated={isOperatorAuth}
+            onLockPanels={handleLockPanels}
+          />
 
         {/* Quick Launch Bar / Overview Strip */}
         <div className="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2 text-xs">
@@ -189,12 +230,13 @@ export default function App() {
               <span className="font-semibold text-slate-300">
                 ACTIVE VIEW:
               </span>
-              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold px-2 py-0.5 rounded text-[11px]">
-                {currentTab === 'STUDENT' && '📱 Student Mobile Web App (Scan QR → Upload → Pay → Print)'}
-                {currentTab === 'KIOSK' && '🖥️ Kiosk Fullscreen Monitor (Idle Ads & Live Spooling)'}
-                {currentTab === 'ADMIN' && '⚙️ Central Admin Management & Paper Stock Audit'}
-                {currentTab === 'SIMULATOR' && '🖨️ HP LaserJet M126nw & Hardware Bus Simulator'}
-                {currentTab === 'DEPLOY' && '📦 Windows ATP Agent Script & Hostinger DNS Hub'}
+              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold px-2 py-0.5 rounded text-[11px] flex items-center gap-1.5">
+                {currentTab === 'STUDENT' && '📱 Student Mobile Web App (OPEN — Scan QR → Upload → Pay → Print)'}
+                {currentTab === 'KIOSK' && '🖥️ Kiosk Fullscreen Monitor (Locked)'}
+                {currentTab === 'ADMIN' && '⚙️ Central Admin Management (Locked)'}
+                {currentTab === 'SIMULATOR' && '🖨️ HP LaserJet M126nw Bus Simulator (Locked)'}
+                {currentTab === 'DEPLOY' && '📦 Windows ATP Agent Script & Hostinger DNS Hub (Locked)'}
+                {currentTab !== 'STUDENT' && !isOperatorAuth && <Lock className="w-3 h-3 text-amber-400" />}
               </span>
             </div>
 
@@ -208,21 +250,44 @@ export default function App() {
           </div>
         </div>
 
-        {/* Main Tab View Rendering */}
+        {/* Main View: Student Panel is OPEN; All other panels require Master Password */}
         <main className="flex-1 w-full">
+          {/* 1. STUDENT MOBILE PANEL: ALWAYS OPEN WITHOUT PASSWORD */}
           {currentTab === 'STUDENT' && <StudentMobileApp />}
-          {currentTab === 'KIOSK' && (
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6">
-              <KioskScreen />
-            </div>
+
+          {/* 2. OPERATOR LOCK SCREEN: Shown when attempting to access any other panel without password */}
+          {currentTab !== 'STUDENT' && !isOperatorAuth && (
+            <AdminLockScreen
+              onUnlock={handleUnlock}
+              onBackToStudent={() => {
+                setOverrideView(null);
+                setActiveTab('STUDENT');
+              }}
+              targetPanelName={
+                currentTab === 'KIOSK' ? 'Kiosk Screen' :
+                currentTab === 'ADMIN' ? 'Admin Central' :
+                currentTab === 'SIMULATOR' ? 'Hardware Simulator' : 'Deploy Hub'
+              }
+            />
           )}
-          {currentTab === 'ADMIN' && <AdminDashboard />}
-          {currentTab === 'SIMULATOR' && <HardwareSimulator />}
-          {currentTab === 'DEPLOY' && <DeploymentHub />}
+
+          {/* 3. PROTECTED PANELS (Rendered ONLY after entering Master PIN: 1260) */}
+          {currentTab !== 'STUDENT' && isOperatorAuth && (
+            <>
+              {currentTab === 'KIOSK' && (
+                <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6">
+                  <KioskScreen />
+                </div>
+              )}
+              {currentTab === 'ADMIN' && <AdminDashboard />}
+              {currentTab === 'SIMULATOR' && <HardwareSimulator />}
+              {currentTab === 'DEPLOY' && <DeploymentHub />}
+            </>
+          )}
         </main>
 
-        {/* Commercial Footer */}
-        <footer className="bg-slate-950 border-t border-slate-900 py-6 px-4 text-center text-xs text-slate-500 space-y-2">
+        {/* Commercial & Razorpay Compliance Regulatory Footer */}
+        <footer className="bg-slate-950 border-t border-slate-900 py-6 px-4 text-center text-xs text-slate-500 space-y-3">
           <div className="flex items-center justify-center gap-2 font-bold text-slate-400">
             <span>{BRAND_CONFIG.brandName}</span>
             <span>•</span>
@@ -230,10 +295,69 @@ export default function App() {
             <span>•</span>
             <span className="font-mono text-slate-400">{BRAND_CONFIG.domain}</span>
           </div>
+
+          {/* Razorpay Merchant Compliance Policies Navigation Links */}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-400 font-medium">
+            <button 
+              type="button" 
+              onClick={() => openPolicy('ABOUT')} 
+              className="hover:text-amber-400 transition-colors"
+            >
+              About Us
+            </button>
+            <span className="text-slate-700">•</span>
+            <button 
+              type="button" 
+              onClick={() => openPolicy('CONTACT')} 
+              className="hover:text-amber-400 transition-colors"
+            >
+              Contact Us
+            </button>
+            <span className="text-slate-700">•</span>
+            <button 
+              type="button" 
+              onClick={() => openPolicy('PRIVACY')} 
+              className="hover:text-amber-400 transition-colors"
+            >
+              Privacy Policy
+            </button>
+            <span className="text-slate-700">•</span>
+            <button 
+              type="button" 
+              onClick={() => openPolicy('TERMS')} 
+              className="hover:text-amber-400 transition-colors"
+            >
+              Terms & Conditions
+            </button>
+            <span className="text-slate-700">•</span>
+            <button 
+              type="button" 
+              onClick={() => openPolicy('REFUND')} 
+              className="hover:text-amber-400 transition-colors text-amber-300 font-bold"
+            >
+              Cancellation & Refund Policy
+            </button>
+            <span className="text-slate-700">•</span>
+            <button 
+              type="button" 
+              onClick={() => openPolicy('SHIPPING')} 
+              className="hover:text-amber-400 transition-colors"
+            >
+              Shipping & Delivery Policy
+            </button>
+          </div>
+
           <p className="text-[11px] max-w-xl mx-auto text-slate-500">
             Commercial Self-Service Any Time Print (ATP) Kiosk Platform with HP LaserJet Pro MFP M126nw Spooler Integration, Automated Paper Cassette Deduction, Digital Out-of-Home (DOOH) Advertising CMS, and Hostinger Deployment Architecture.
           </p>
         </footer>
+
+        {/* Global Razorpay Merchant Policies Modal */}
+        <RazorpayPoliciesModal
+          isOpen={policyModalOpen}
+          initialTab={policyInitialTab}
+          onClose={() => setPolicyModalOpen(false)}
+        />
       </div>
     </KioskProvider>
   </ErrorBoundary>

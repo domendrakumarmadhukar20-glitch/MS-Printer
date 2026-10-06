@@ -30,6 +30,7 @@ import { useKiosk } from '../../context/KioskContext';
 import { BRAND_CONFIG } from '../../config/branding';
 import { PrintJob } from '../../types';
 import { PagePreviewSelector } from './PagePreviewSelector';
+import { RazorpayPoliciesModal, PolicyTab } from '../common/RazorpayPoliciesModal';
 import { 
   openRazorpayCheckout, 
   buildUpiIntentUrl, 
@@ -65,6 +66,7 @@ export const StudentMobileApp: React.FC<StudentMobileAppProps> = ({
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   // Uploaded file state
+  const [uploadedRawFile, setUploadedRawFile] = useState<File | null>(null);
   const [uploadedFile, setUploadedFile] = useState<{
     name: string;
     size: number;
@@ -73,7 +75,7 @@ export const StudentMobileApp: React.FC<StudentMobileAppProps> = ({
   } | null>(null);
 
   // Page selection state: list of selected page numbers (e.g. [1, 2, 3])
-  const [selectedPages, setSelectedPages] = useState<number[]>([1, 2, 3, 4]);
+  const [selectedPages, setSelectedPages] = useState<number[]>([1]);
 
   // Print settings
   const [paperSize, setPaperSize] = useState<'A4'>('A4');
@@ -90,43 +92,53 @@ export const StudentMobileApp: React.FC<StudentMobileAppProps> = ({
   const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
   const [receiptCopied, setReceiptCopied] = useState<boolean>(false);
 
+  // Razorpay Policies Modal State
+  const [policyModalOpen, setPolicyModalOpen] = useState<boolean>(false);
+  const [policyInitialTab, setPolicyInitialTab] = useState<PolicyTab>('ABOUT');
+
+  const openPolicy = (tab: PolicyTab) => {
+    setPolicyInitialTab(tab);
+    setPolicyModalOpen(true);
+  };
+
   // Operator PIN Modal
   const [showPinModal, setShowPinModal] = useState<boolean>(false);
   const [operatorPin, setOperatorPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
 
   // Calculate pricing breakdown based on ticked/selected pages
-  const effectivePageCount = uploadedFile ? Math.max(1, selectedPages.length) : 4;
+  const effectivePageCount = uploadedFile ? Math.max(1, selectedPages.length) : 1;
   const priceQuote = calculatePrice(effectivePageCount, copies, colorMode, duplexMode);
-
-  // Sample quick load files for instant testing
-  const sampleFiles = [
-    { name: 'Computer_Networks_Unit3_Notes.pdf', size: 1420000, pageCount: 6, hash: 'sha256_e8912fc882b01' },
-    { name: 'Engineering_Physics_Lab_Manual.pdf', size: 2150000, pageCount: 12, hash: 'sha256_bb902419ac092' },
-    { name: 'Final_Year_Project_Synopsis.pdf', size: 840000, pageCount: 4, hash: 'sha256_9941a877be103' },
-  ];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Simulate PDF parsing
-      const estimatedPages = Math.max(1, Math.min(25, Math.ceil(file.size / 250000)));
+      setUploadedRawFile(file);
+      const estimatedPages = file.type.startsWith('image/') 
+        ? 1 
+        : Math.max(1, Math.min(30, Math.ceil(file.size / 220000)));
+
       setUploadedFile({
         name: file.name,
         size: file.size,
         pageCount: estimatedPages,
         hash: 'sha256_' + Math.random().toString(36).substring(2, 12),
       });
-      // Default to selecting all pages
+
       setSelectedPages(Array.from({ length: estimatedPages }, (_, i) => i + 1));
       setStep('SETTINGS');
     }
   };
 
-  const handleSelectSample = (sample: typeof sampleFiles[0]) => {
-    setUploadedFile(sample);
-    setSelectedPages(Array.from({ length: sample.pageCount }, (_, i) => i + 1));
-    setStep('SETTINGS');
+  // Called when PDF.js detects the authentic exact page count from the uploaded PDF
+  const handlePageCountDetected = (actualPages: number) => {
+    if (actualPages > 0) {
+      setUploadedFile(prev => prev ? { ...prev, pageCount: actualPages } : null);
+      setSelectedPages(prev => {
+        const valid = prev.filter(p => p <= actualPages);
+        return valid.length > 0 ? valid : Array.from({ length: actualPages }, (_, i) => i + 1);
+      });
+    }
   };
 
   // Proceed to Payment
@@ -326,57 +338,38 @@ export const StudentMobileApp: React.FC<StudentMobileAppProps> = ({
             </div>
 
             {/* Upload Drop Zone */}
-            <label className="border-2 border-dashed border-amber-500/50 hover:border-amber-400 bg-slate-950/60 rounded-2xl p-6 block text-center cursor-pointer transition-all hover:bg-slate-950 group">
+            <label className="border-2 border-dashed border-amber-500/50 hover:border-amber-400 bg-slate-950/60 rounded-3xl p-8 block text-center cursor-pointer transition-all hover:bg-slate-950 group shadow-inner">
               <input
                 type="file"
-                accept=".pdf,application/pdf"
+                accept=".pdf,application/pdf,image/*,.png,.jpg,.jpeg,.docx"
                 onChange={handleFileUpload}
                 className="hidden"
               />
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center mb-3 border border-amber-500/30 group-hover:scale-105 transition-transform">
-                <Upload className="w-7 h-7 text-amber-400 animate-bounce" />
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center mb-3 border border-amber-500/30 group-hover:scale-110 transition-transform shadow-lg shadow-amber-500/10">
+                <Upload className="w-8 h-8 text-amber-400 animate-bounce" />
               </div>
-              <p className="text-sm font-bold text-white">
-                {lang === 'EN' ? 'Tap to Browse PDF File' : 'PDF फाइल चुनने के लिए यहाँ टैप करें'}
+              <p className="text-base font-bold text-white">
+                {lang === 'EN' ? 'Tap to Choose Your Document' : 'अपना डॉक्यूमेंट चुनने के लिए यहाँ टैप करें'}
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">
-                PDF up to 50 MB • Instant page count & thumbnail inspection
+              <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                {lang === 'EN'
+                  ? 'Supports PDF, Word & Images • High-speed laser output'
+                  : 'PDF, फोटो या वर्ड फाइल • तुरंत पेज गिनती व स्पष्ट प्रीव्यू'}
               </p>
-              <span className="inline-block mt-3 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs px-5 py-2 rounded-xl shadow-lg shadow-amber-500/20">
-                {lang === 'EN' ? 'Choose from Phone' : 'फोन से फाइल चुनें'}
+              <span className="inline-block mt-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs px-6 py-2.5 rounded-xl shadow-lg shadow-amber-500/20 transition-transform active:scale-95">
+                {lang === 'EN' ? '📁 Choose File from Device' : '📁 अपने फोन/डिवाइस से फाइल चुनें'}
               </span>
             </label>
 
-            {/* Quick Demo Samples */}
-            <div className="pt-1">
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span>{lang === 'EN' ? 'Or Test with Sample Document:' : 'या तुरंत टेस्ट करने के लिए सैंपल चुनें:'}</span>
-                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">1-Tap Load</span>
+            {/* Document Security & Format Notes */}
+            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+              <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                <FileCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>PDF & फोटो सपोर्ट (50 MB)</span>
               </div>
-
-              <div className="space-y-2">
-                {sampleFiles.map((file, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelectSample(file)}
-                    className="w-full text-left p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900 transition-all flex items-center justify-between text-xs group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-200 group-hover:text-amber-400 transition-colors">
-                          {file.name}
-                        </p>
-                        <p className="text-[11px] text-slate-400 font-mono">
-                          {file.pageCount} Pages • {(file.size / 1000000).toFixed(1)} MB
-                        </p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
+              <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>तुरंत 15 सेकंड में प्रिंट</span>
               </div>
             </div>
 
@@ -418,13 +411,15 @@ export const StudentMobileApp: React.FC<StudentMobileAppProps> = ({
               </button>
             </div>
 
-            {/* REQUIREMENT #1: INTERACTIVE PAGE PREVIEW & TICK CHECKBOX SELECTOR */}
+            {/* INTERACTIVE PAGE PREVIEW & TICK CHECKBOX SELECTOR WITH REAL PDF RENDERING */}
             <PagePreviewSelector
               totalPages={uploadedFile.pageCount}
               selectedPages={selectedPages}
               onChange={setSelectedPages}
               lang={lang}
               documentName={uploadedFile.name}
+              file={uploadedRawFile}
+              onPageCountDetected={handlePageCountDetected}
             />
 
             {/* Print Settings Options */}
@@ -842,11 +837,77 @@ export const StudentMobileApp: React.FC<StudentMobileAppProps> = ({
         </div>
       )}
 
-      {/* Footer Branding */}
-      <div className="text-center text-xs text-slate-500 space-y-1 mt-2">
-        <p className="font-mono">{BRAND_CONFIG.brandName} • {BRAND_CONFIG.domain}</p>
-        <p className="text-[11px]">24×7 Commercial Smart Kiosk System • Powered by HP LaserJet M126nw</p>
+      {/* Mandatory Razorpay Merchant Compliance Footer Policies */}
+      <div className="w-full max-w-lg text-center text-xs text-slate-400 space-y-2 mt-4 px-2">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] font-semibold text-slate-400">
+          <button 
+            type="button" 
+            onClick={() => openPolicy('ABOUT')} 
+            className="hover:text-amber-400 underline-offset-2 hover:underline transition-colors"
+          >
+            About Us
+          </button>
+          <span className="text-slate-700">•</span>
+          <button 
+            type="button" 
+            onClick={() => openPolicy('CONTACT')} 
+            className="hover:text-amber-400 underline-offset-2 hover:underline transition-colors"
+          >
+            Contact Us
+          </button>
+          <span className="text-slate-700">•</span>
+          <button 
+            type="button" 
+            onClick={() => openPolicy('PRIVACY')} 
+            className="hover:text-amber-400 underline-offset-2 hover:underline transition-colors"
+          >
+            Privacy Policy
+          </button>
+          <span className="text-slate-700">•</span>
+          <button 
+            type="button" 
+            onClick={() => openPolicy('TERMS')} 
+            className="hover:text-amber-400 underline-offset-2 hover:underline transition-colors"
+          >
+            Terms & Conditions
+          </button>
+          <span className="text-slate-700">•</span>
+          <button 
+            type="button" 
+            onClick={() => openPolicy('REFUND')} 
+            className="hover:text-amber-400 underline-offset-2 hover:underline transition-colors text-amber-300"
+          >
+            Cancellation & Refund
+          </button>
+          <span className="text-slate-700">•</span>
+          <button 
+            type="button" 
+            onClick={() => openPolicy('SHIPPING')} 
+            className="hover:text-amber-400 underline-offset-2 hover:underline transition-colors"
+          >
+            Shipping & Delivery
+          </button>
+        </div>
+
+        <div className="text-[10px] text-slate-500 font-mono flex items-center justify-center gap-2">
+          <span>{BRAND_CONFIG.brandName}</span>
+          <span>•</span>
+          <span className="text-emerald-400 font-sans font-semibold">Razorpay Verified Merchant</span>
+          <span>•</span>
+          <span>{BRAND_CONFIG.domain}</span>
+        </div>
+        <p className="text-[10px] text-slate-600">
+          24×7 Commercial Self-Service ATP Kiosk System • Physical Laser Delivery on Kiosk Tray
+        </p>
       </div>
+
+      {/* Razorpay Merchant Compliance Modal */}
+      <RazorpayPoliciesModal
+        isOpen={policyModalOpen}
+        initialTab={policyInitialTab}
+        onClose={() => setPolicyModalOpen(false)}
+        lang={lang}
+      />
     </div>
   );
 };

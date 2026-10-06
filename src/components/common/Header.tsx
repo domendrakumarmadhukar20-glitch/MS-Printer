@@ -11,7 +11,9 @@ import {
   Activity,
   Layers,
   ChevronDown,
-  Sparkles
+  Sparkles,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { BRAND_CONFIG } from '../../config/branding';
 import { useKiosk } from '../../context/KioskContext';
@@ -20,9 +22,16 @@ import { soundService } from '../../services/soundService';
 interface HeaderProps {
   activeTab: 'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY';
   setActiveTab: (tab: 'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY') => void;
+  isOperatorAuthenticated?: boolean;
+  onLockPanels?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  activeTab, 
+  setActiveTab,
+  isOperatorAuthenticated = false,
+  onLockPanels
+}) => {
   const { currentMachineId, setCurrentMachineId, machines, currentMachine } = useKiosk();
   const [isMuted, setIsMuted] = useState(soundService.getMuted());
   const [showMachineDropdown, setShowMachineDropdown] = useState(false);
@@ -89,6 +98,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           >
             <Smartphone className="w-3.5 h-3.5" />
             <span>Student Mobile</span>
+            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-sans font-bold">
+              OPEN
+            </span>
           </button>
 
           <button
@@ -101,7 +113,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           >
             <Monitor className="w-3.5 h-3.5" />
             <span>Kiosk Screen</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            {!isOperatorAuthenticated ? (
+              <Lock className="w-3 h-3 text-amber-400/80" />
+            ) : (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            )}
           </button>
 
           <button
@@ -114,6 +130,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Admin Central</span>
+            {!isOperatorAuthenticated && (
+              <Lock className="w-3 h-3 text-amber-400/80" />
+            )}
           </button>
 
           <button
@@ -125,7 +144,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             }`}
           >
             <Cpu className="w-3.5 h-3.5" />
-            <span>Hardware & Agent</span>
+            <span>Hardware</span>
+            {!isOperatorAuthenticated && (
+              <Lock className="w-3 h-3 text-amber-400/80" />
+            )}
           </button>
 
           <button
@@ -138,11 +160,25 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           >
             <FileCode2 className="w-3.5 h-3.5" />
             <span>Deploy Hub</span>
+            {!isOperatorAuthenticated && (
+              <Lock className="w-3 h-3 text-amber-400/80" />
+            )}
           </button>
         </nav>
 
-        {/* Machine Selector & Audio Toggle */}
+        {/* Machine Selector & Audio Toggle & Operator Lock */}
         <div className="flex items-center gap-2">
+          {/* Operator Logout/Lock Button */}
+          {isOperatorAuthenticated && onLockPanels && (
+            <button
+              onClick={onLockPanels}
+              title="Lock Operator Panels (लॉगआउट)"
+              className="flex items-center gap-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-2.5 py-1.5 rounded-lg transition-colors font-bold"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">लॉगआउट / लॉक</span>
+            </button>
+          )}
           {/* Active Machine Dropdown */}
           <div className="relative">
             <button
