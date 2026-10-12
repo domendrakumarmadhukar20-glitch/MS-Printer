@@ -33,8 +33,8 @@ export const DeploymentHub: React.FC = () => {
 ================================================================================
 MS PRINTERS - ANY TIME PRINT (ATP) WINDOWS KIOSK PRINT AGENT
 ================================================================================
-Hardware: HP LaserJet Pro MFP M126nw
-Operating System: Windows 10 Pro 64-bit
+Hardware: ANY Connected Windows Printer (Canon, HP, Epson, Brother, Ricoh, TVS, etc.)
+Operating System: Windows 10 / 11 / Server (Any PC)
 Production Target: msprinter.in
 ================================================================================
 """
@@ -61,7 +61,7 @@ CONFIG = {
     "BACKEND_URL": "https://msprinter.in",
     "MACHINE_ID": "ATP-ABC-001",
     "MACHINE_TOKEN": "tok_live_atp_abc_001_sec88f91a",
-    "PRINTER_NAME": "HP LaserJet Pro MFP M126nw",  # Windows driver name
+    "PRINTER_NAME": "AUTO_DETECT",  # Auto-connects to ANY default or connected printer
     "POLL_INTERVAL_SECONDS": 2.0,
     "HEARTBEAT_INTERVAL_SECONDS": 15.0,
     "TEMP_DIR": os.path.join(tempfile.gettempdir(), "msprinters_spool")
@@ -130,15 +130,15 @@ def send_heartbeat():
     except Exception as e:
         logging.warning(f"Heartbeat failed: {e}")
 
-def spool_to_hp_printer(filepath, job_details):
+def spool_to_connected_printer(filepath, job_details):
     """
-    Directly dispatches PDF print job to HP LaserJet Pro MFP M126nw.
-    Uses Foxit Reader / Adobe Acrobat / SumatraPDF in silent print mode.
+    Directly dispatches PDF print job to the connected Windows printer.
+    Uses Windows native ShellExecute print or SumatraPDF in silent print mode.
     """
     logging.info(f"Spooling {job_details['file_name']} to {CONFIG['PRINTER_NAME']}...")
     
     # Example using SumatraPDF silent print CLI for reliable unattended execution:
-    # SumatraPDF.exe -print-to "HP LaserJet Pro MFP M126nw" -print-settings "1x,duplex" file.pdf
+    # SumatraPDF.exe -print-to "Default" -print-settings "1x,duplex" file.pdf
     duplex_flag = "duplex" if job_details['settings']['duplexMode'] == 'DUPLEX' else "simplex"
     copies = job_details['settings']['copies']
     

@@ -89,8 +89,8 @@ const INITIAL_MACHINES: KioskMachine[] = [
     collegeId: 'COLLEGE-ABC',
     collegeName: 'ABC Institute of Technology & Research',
     location: 'Central Library, Ground Floor',
-    printerModel: 'HP LaserJet Pro MFP M126nw',
-    printerPort: 'USB001 / Spooler HP_M126nw',
+    printerModel: 'Auto-Connected Windows Printer (Universal Spooler)',
+    printerPort: 'Auto-Detect (USB / Wi-Fi / LAN)',
     telemetry: {
       internetOnline: true,
       agentOnline: true,
@@ -107,8 +107,8 @@ const INITIAL_MACHINES: KioskMachine[] = [
     paperTray: {
       id: 'TRAY-01-ABC1',
       machine_id: 'ATP-ABC-001',
-      printer_id: 'HP-M126NW-01',
-      tray_name: 'Tray 1 (Standard Manual/Auto Feed)',
+      printer_id: 'AUTO-DETECT-01',
+      tray_name: 'Main Tray (Standard Feed)',
       paper_size: 'A4',
       paper_type: '75 GSM Plain White Paper',
       maximum_capacity: 500,
@@ -126,8 +126,8 @@ const INITIAL_MACHINES: KioskMachine[] = [
     collegeId: 'COLLEGE-ABC',
     collegeName: 'ABC Institute of Technology & Research',
     location: 'Computer Science Dept, 2nd Floor Block B',
-    printerModel: 'HP LaserJet Pro MFP M126nw',
-    printerPort: '192.168.1.155 (LAN JetDirect)',
+    printerModel: 'Auto-Connected Windows Printer (Universal Spooler)',
+    printerPort: 'Auto-Detect (USB / Wi-Fi / LAN)',
     telemetry: {
       internetOnline: true,
       agentOnline: true,
@@ -144,8 +144,8 @@ const INITIAL_MACHINES: KioskMachine[] = [
     paperTray: {
       id: 'TRAY-01-ABC2',
       machine_id: 'ATP-ABC-002',
-      printer_id: 'HP-M126NW-02',
-      tray_name: 'Tray 1',
+      printer_id: 'AUTO-DETECT-02',
+      tray_name: 'Main Tray',
       paper_size: 'A4',
       paper_type: '75 GSM Plain White Paper',
       maximum_capacity: 500,
@@ -163,8 +163,8 @@ const INITIAL_MACHINES: KioskMachine[] = [
     collegeId: 'COLLEGE-DEL',
     collegeName: 'Delhi Knowledge Campus',
     location: 'Student Activity Center, Gate 2',
-    printerModel: 'HP LaserJet Pro MFP M126nw',
-    printerPort: 'USB002',
+    printerModel: 'Auto-Connected Windows Printer (Universal Spooler)',
+    printerPort: 'Auto-Detect (USB / Wi-Fi / LAN)',
     telemetry: {
       internetOnline: true,
       agentOnline: true,
@@ -343,7 +343,7 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: 'log-002',
       timestamp: new Date().toLocaleTimeString(),
       level: 'INFO',
-      message: 'Connected to HP LaserJet Pro MFP M126nw (USB001). Status: READY / 600 DPI.'
+      message: 'Universal Auto-Connect Active: Bound to Default Windows Printer (Ready / Auto-Spooling).'
     },
     {
       id: 'log-003',
@@ -924,14 +924,14 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (nextQueuedJob) {
         // Check printer health
         if (printerStatus === 'OFFLINE') {
-          setJobs(prev => prev.map(j => j.job_id === nextQueuedJob.job_id ? { ...j, print_status: 'PRINTER_OFFLINE', error_message: 'Printer is currently offline or unreachable.' } : j));
-          addAgentLog('ERROR', `Cannot print ${nextQueuedJob.job_id}: HP LaserJet M126nw is OFFLINE.`);
+          setJobs(prev => prev.map(j => j.job_id === nextQueuedJob.job_id ? { ...j, print_status: 'PRINTER_OFFLINE', error_message: 'Connected printer is currently offline or unreachable.' } : j));
+          addAgentLog('ERROR', `Cannot print ${nextQueuedJob.job_id}: Target printer is OFFLINE.`);
           return;
         }
 
         if (printerStatus === 'PAPER_JAM') {
           setJobs(prev => prev.map(j => j.job_id === nextQueuedJob.job_id ? { ...j, print_status: 'FAILED', error_message: 'Printer reported a paper jam in paper path.' } : j));
-          addAgentLog('ERROR', `Cannot print ${nextQueuedJob.job_id}: PAPER JAM in HP M126nw.`);
+          addAgentLog('ERROR', `Cannot print ${nextQueuedJob.job_id}: PAPER JAM in connected printer.`);
           return;
         }
 
@@ -952,7 +952,7 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         setKioskActivityMode('PRINTING');
         soundService.announcePrintStarted(nextQueuedJob.settings.pageCount * nextQueuedJob.settings.copies);
-        addAgentLog('INFO', `Starting print for Job [${nextQueuedJob.job_id}] on HP LaserJet M126nw...`);
+        addAgentLog('INFO', `Starting print for Job [${nextQueuedJob.job_id}] on connected Windows printer...`);
       }
     }, 1800);
 

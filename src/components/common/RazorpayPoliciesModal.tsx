@@ -173,7 +173,7 @@ export const RazorpayPoliciesModal: React.FC<RazorpayPoliciesModalProps> = ({
                   <li><strong>Instant Mobile Touchless Access:</strong> Students simply scan the QR code on the kiosk screen with any smartphone.</li>
                   <li><strong>Live Document & Page Inspector:</strong> Choose specific pages to print with instant thumbnail previews and live price calculations.</li>
                   <li><strong>Seamless Online Payments:</strong> Integrated with Razorpay Gateway supporting UPI (Google Pay, PhonePe, Paytm, BHIM), Debit/Credit Cards, and Net Banking.</li>
-                  <li><strong>High-Speed Laser Output:</strong> Automated hardware integration with HP LaserJet Pro MFP commercial laser hardware dispensing fresh prints in under 15 seconds.</li>
+                  <li><strong>High-Speed Print Output:</strong> Automated hardware integration with connected Windows laser/inkjet printers dispensing fresh prints in under 15 seconds.</li>
                 </ul>
 
                 <h5 className="font-bold text-white text-sm pt-2">Operational Scope</h5>

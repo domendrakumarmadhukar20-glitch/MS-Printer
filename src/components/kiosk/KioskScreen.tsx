@@ -25,6 +25,7 @@ import {
 import { useKiosk } from '../../context/KioskContext';
 import { BRAND_CONFIG } from '../../config/branding';
 import { soundService } from '../../services/soundService';
+import { BrandedKioskQRCode } from './BrandedKioskQRCode';
 
 export const KioskScreen: React.FC = () => {
   const { 
@@ -212,7 +213,7 @@ export const KioskScreen: React.FC = () => {
 
             <div className="space-y-1">
               <span className="text-xs font-mono text-amber-400 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                HP LASERJET PRO MFP M126NW • PRINTING IN PROGRESS
+                {currentMachine.printerModel.toUpperCase()} • PRINTING IN PROGRESS
               </span>
               <h2 className="text-3xl font-black text-white pt-2">
                 Printing Your Document
@@ -266,13 +267,13 @@ export const KioskScreen: React.FC = () => {
               ✓ PRINT COMPLETED!
             </h2>
             <p className="text-slate-300 text-sm">
-              Please collect your documents from the HP LaserJet M126nw output tray.
+              Please collect your fresh printouts from the printer output tray.
             </p>
 
             <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 text-xs font-mono text-slate-400 space-y-1">
               <p>Job: <span className="text-white">{completedJob.job_id}</span></p>
               <p>Physical Sheets: <span className="text-emerald-400 font-bold">{completedJob.settings.physicalSheets}</span></p>
-              <p>Status: Safely Spooled & Delivered</p>
+              <p>Spooler: Connected Windows Printer (Ready)</p>
             </div>
 
             <p className="text-amber-400 text-xs font-semibold">
@@ -281,55 +282,37 @@ export const KioskScreen: React.FC = () => {
           </div>
 
         ) : kioskActivityMode === 'INTERACTIVE' ? (
-          /* --- VIEW 3: INTERACTIVE QR CODE SCAN SCREEN --- */
-          <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-slate-900/80 backdrop-blur-xl p-8 rounded-3xl border border-slate-800 shadow-2xl">
-            {/* Left: Giant QR Code */}
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="bg-white p-6 rounded-3xl shadow-2xl border-4 border-amber-500 relative group">
-                {/* Visual SVG QR */}
-                <div className="w-60 h-60 flex flex-col items-center justify-center relative">
-                  <svg className="w-full h-full text-slate-950" viewBox="0 0 100 100" fill="currentColor">
-                    <path d="M0 0h32v32H0zM8 8h16v16H8zM68 0h32v32H68zM76 8h16v16H76zM0 68h32v32H0zM8 76h16v16H8zM42 10h16v16H42zM50 36h12v12H50zM36 50h12v12H36zM10 42h16v16H10zM74 42h16v16H74zM42 74h16v16H42zM68 68h12v12H68zM84 84h16v16H84zM68 84h12v12H68z" />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-md shadow-lg border border-amber-300">
-                      MS PRINTERS
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-center">
-                <span className="font-mono text-xs text-amber-400 font-bold bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                  {publicKioskUrl}
-                </span>
-                <p className="text-[11px] text-slate-400 mt-1">No app install required • Direct browser access</p>
-              </div>
+          /* --- VIEW 3: INTERACTIVE QR CODE SCAN SCREEN (PROFESSIONAL BRANDED) --- */
+          <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-slate-900/80 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl">
+            {/* Left: Professional Branded QR Code Component */}
+            <div className="flex flex-col items-center justify-center">
+              <BrandedKioskQRCode machineId={currentMachine.id} size={250} />
             </div>
 
             {/* Right: Step-by-Step Instructions */}
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="space-y-1">
-                <span className="text-amber-400 font-bold text-xs uppercase tracking-widest">
-                  SELF-SERVICE INSTRUCTIONS
+                <span className="text-amber-400 font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>SELF-SERVICE PRINTING • 24×7 UNATTENDED</span>
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
-                  Scan QR with your phone to print immediately
+                  QR स्कैन करें और 30 सेकंड में प्रिंट पाएं
                 </h2>
                 <p className="text-slate-400 text-xs">
-                  फोन के कैमरे से QR कोड स्कैन करें और 1 मिनट में प्रिंट प्राप्त करें।
+                  Open phone camera or Google Lens. Portal opens instantly with ZERO waiting!
                 </p>
               </div>
 
               {/* 4 Simple Steps */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <div className="flex items-center gap-3 bg-slate-950 p-3 rounded-2xl border border-slate-800">
                   <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-sm border border-amber-500/30">
                     1
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs text-white">Scan QR Code</h3>
-                    <p className="text-[11px] text-slate-400">Open phone camera or Google Lens to scan</p>
+                    <h3 className="font-bold text-xs text-white">Scan QR with Phone</h3>
+                    <p className="text-[11px] text-slate-400">Camera / Google Lens / WhatsApp / Paytm</p>
                   </div>
                 </div>
 
@@ -338,8 +321,8 @@ export const KioskScreen: React.FC = () => {
                     2
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs text-white">Upload PDF Document</h3>
-                    <p className="text-[11px] text-slate-400">Select pages, copies & single/duplex settings</p>
+                    <h3 className="font-bold text-xs text-white">Upload File & Inspect Preview</h3>
+                    <p className="text-[11px] text-slate-400">PDF, Word, or Photos • Select exact pages to print</p>
                   </div>
                 </div>
 
@@ -348,7 +331,7 @@ export const KioskScreen: React.FC = () => {
                     3
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs text-white">Pay Online via UPI</h3>
+                    <h3 className="font-bold text-xs text-white">Pay Online via UPI (Razorpay)</h3>
                     <p className="text-[11px] text-slate-400">GPay, PhonePe, Paytm or BHIM (starting at ₹2)</p>
                   </div>
                 </div>
@@ -358,14 +341,13 @@ export const KioskScreen: React.FC = () => {
                     4
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs text-white">Collect from Tray</h3>
-                    <p className="text-[11px] text-slate-400">HP LaserJet M126nw delivers instantly</p>
+                    <h3 className="font-bold text-xs text-white">Collect Fresh Prints from Tray</h3>
+                    <p className="text-[11px] text-slate-400">Any connected printer dispenses automatically</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
         ) : (
           /* --- VIEW 4: DIGITAL ADVERTISING PLAYER (IDLE MODE) --- */
           <div className="relative w-full h-full min-h-[500px] flex items-center justify-center overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 group">

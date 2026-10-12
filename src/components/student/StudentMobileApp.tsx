@@ -705,12 +705,12 @@ export const StudentMobileApp: React.FC<StudentMobileAppProps> = ({
               <div className="text-xs">
                 {activeJob.print_status === 'COMPLETED' && (
                   <p className="text-emerald-400 font-bold">
-                    ✓ प्रिंट सफलतापूर्वक पूरा हुआ! कृपया HP LaserJet M126nw से पेज प्राप्त करें।
+                    ✓ प्रिंट सफलतापूर्वक पूरा हुआ! कृपया प्रिंटर ट्रे से अपने पेज प्राप्त करें।
                   </p>
                 )}
                 {activeJob.print_status === 'PRINTING' && (
                   <p className="text-amber-300 font-bold">
-                    🖨️ HP LaserJet Pro MFP M126nw स्पूलिंग चालू है... कृपया आउटपुट ट्रे के पास खड़े रहें।
+                    🖨️ कनेक्टेड प्रिंटर पर ऑटोमैटिक स्पूलिंग चालू है... कृपया आउटपुट ट्रे के पास खड़े रहें।
                   </p>
                 )}
                 {activeJob.print_status === 'QUEUED' && (

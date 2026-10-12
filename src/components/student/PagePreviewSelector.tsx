@@ -401,7 +401,7 @@ export const PagePreviewSelector: React.FC<PagePreviewSelectorProps> = ({
                       {/* Legible sample text lines */}
                       <div className="space-y-1 text-[6px] text-slate-600 leading-tight">
                         <p className="line-clamp-2">
-                          Standard commercial print raster generated for HP LaserJet Pro MFP M126nw.
+                          Standard commercial print raster generated for connected Windows printer.
                         </p>
                         <div className="p-1 bg-slate-100 rounded border border-slate-200 text-[6px] text-slate-700 font-mono">
                           TABLE {pageNum}.1: Page Data Matrix
@@ -544,7 +544,7 @@ export const PagePreviewSelector: React.FC<PagePreviewSelectorProps> = ({
 
                       <div className="space-y-2 text-xs text-slate-700 leading-relaxed">
                         <p>
-                          This preview displays the authentic document layout destined for high-speed laser rasterization on the <strong>HP LaserJet Pro MFP M126nw</strong> hardware controller.
+                          This preview displays the authentic document layout destined for high-speed laser/inkjet rasterization on your <strong>connected Windows printer</strong> hardware controller.
                         </p>
                         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 font-mono text-[11px] text-slate-800">
                           <div>• DPI Resolution: 600 x 600 DPI (Crisp Sharp Vector)</div>

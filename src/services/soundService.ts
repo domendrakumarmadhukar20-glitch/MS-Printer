@@ -194,7 +194,7 @@ class SoundService {
   public announcePrintStarted(pageCount: number) {
     this.playPrintStartChime();
     setTimeout(() => {
-      this.speakAnnouncement(`Printing on HP LaserJet Pro M126. Total ${pageCount} pages.`);
+      this.speakAnnouncement(`Printing started on connected printer. Total ${pageCount} pages.`);
     }, 350);
   }
 

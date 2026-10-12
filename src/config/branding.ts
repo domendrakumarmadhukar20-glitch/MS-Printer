@@ -16,8 +16,8 @@ export const BRAND_CONFIG = {
   defaultCollegeName: 'ABC Institute of Technology & Research',
   defaultKioskLocation: 'Central Library, Ground Floor',
   initialHardware: {
-    printerModel: 'HP LaserJet Pro MFP M126nw',
-    os: 'Windows 10 Pro 64-bit',
+    printerModel: 'Auto-Connected System Printer (Universal ATP Spooler)',
+    os: 'Windows 10 / 11 / Server (Any PC)',
     kioskCabinet: 'Reinforced Metal Tamper-Proof Enclosure',
     upsBackup: '1000VA Line-Interactive UPS with AVR',
     standardTrayCapacity: 500, // sheets

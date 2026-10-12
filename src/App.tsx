@@ -234,14 +234,14 @@ export default function App() {
                 {currentTab === 'STUDENT' && '📱 Student Mobile Web App (OPEN — Scan QR → Upload → Pay → Print)'}
                 {currentTab === 'KIOSK' && '🖥️ Kiosk Fullscreen Monitor (Locked)'}
                 {currentTab === 'ADMIN' && '⚙️ Central Admin Management (Locked)'}
-                {currentTab === 'SIMULATOR' && '🖨️ HP LaserJet M126nw Bus Simulator (Locked)'}
+                {currentTab === 'SIMULATOR' && '🖨️ Universal Printer & Hardware Simulator (Locked)'}
                 {currentTab === 'DEPLOY' && '📦 Windows ATP Agent Script & Hostinger DNS Hub (Locked)'}
                 {currentTab !== 'STUDENT' && !isOperatorAuth && <Lock className="w-3 h-3 text-amber-400" />}
               </span>
             </div>
 
             <div className="flex items-center gap-3 text-slate-400 text-[11px] font-mono">
-              <span>HP LaserJet Pro MFP M126nw</span>
+              <span className="text-emerald-400 font-bold">Auto-Connected Printer (Ready)</span>
               <span>•</span>
               <span>Tray: 500 Sheets</span>
               <span>•</span>
@@ -348,7 +348,7 @@ export default function App() {
           </div>
 
           <p className="text-[11px] max-w-xl mx-auto text-slate-500">
-            Commercial Self-Service Any Time Print (ATP) Kiosk Platform with HP LaserJet Pro MFP M126nw Spooler Integration, Automated Paper Cassette Deduction, Digital Out-of-Home (DOOH) Advertising CMS, and Hostinger Deployment Architecture.
+            Commercial Self-Service Any Time Print (ATP) Kiosk Platform with Universal Windows Spooler Integration (Canon, HP, Epson, Brother, Any Connected Printer), Automated Paper Cassette Deduction, Digital Out-of-Home (DOOH) Advertising CMS, and Hostinger Deployment Architecture.
           </p>
         </footer>
 

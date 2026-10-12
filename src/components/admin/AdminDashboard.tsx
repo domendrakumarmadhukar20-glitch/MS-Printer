@@ -38,6 +38,7 @@ import { BRAND_CONFIG } from '../../config/branding';
 import { soundService } from '../../services/soundService';
 import { Advertisement, PricingRule } from '../../types';
 import { getRazorpayConfig, saveRazorpayConfig } from '../../services/razorpayService';
+import { RazorpaySetupGuideModal } from './RazorpaySetupGuideModal';
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -62,6 +63,7 @@ export const AdminDashboard: React.FC = () => {
 
   // Admin active sub-tab
   const [adminTab, setAdminTab] = useState<'OVERVIEW' | 'MACHINES' | 'PAPER' | 'ADS' | 'JOBS' | 'PRICING' | 'RAZORPAY' | 'INSTALLER'>('OVERVIEW');
+  const [showRzpGuide, setShowRzpGuide] = useState<boolean>(false);
 
   // Razorpay Gateway State
   const initialRzp = getRazorpayConfig();
@@ -946,9 +948,19 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 font-mono text-xs">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-emerald-400 font-bold">Checkout Ready</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowRzpGuide(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+              >
+                <span>📸 स्क्रीनशॉट सहित गाइड देखें (View Screenshot Guide)</span>
+              </button>
+
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-emerald-400 font-bold">Checkout Ready</span>
+              </div>
             </div>
           </div>
 

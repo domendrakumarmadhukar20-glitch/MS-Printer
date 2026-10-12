@@ -59,7 +59,7 @@ export const HardwareSimulator: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Interactive test bench for HP LaserJet Pro MFP M126nw, UPS Power, Cabinet Sensors, and Windows Agent Service
+              Interactive test bench for Universal Connected Printer (Auto-Detect: Canon, HP, Epson, Brother, Ricoh, TVS, etc.), UPS Power, and Agent Service
             </p>
           </div>
         </div>
@@ -70,7 +70,7 @@ export const HardwareSimulator: React.FC = () => {
             className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-md shadow-amber-500/20"
           >
             <Printer className="w-4 h-4" />
-            <span>Send Test Print to HP M126nw</span>
+            <span>Send Test Print to Connected Printer</span>
           </button>
 
           <button
@@ -86,17 +86,17 @@ export const HardwareSimulator: React.FC = () => {
       {/* Hardware Control Deck */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* PANEL 1: HP LaserJet Pro MFP M126nw Diagnostics */}
+        {/* PANEL 1: Universal Auto-Connected Printer Diagnostics */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Printer className="w-5 h-5 text-amber-400" />
               <h2 className="text-base font-bold text-white">
-                HP LaserJet Pro MFP M126nw Hardware Status
+                Universal Connected Printer Hardware Status
               </h2>
             </div>
             <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-              Port: {currentMachine.printerPort}
+              {currentMachine.printerPort}
             </span>
           </div>
 
@@ -315,7 +315,7 @@ export const HardwareSimulator: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-slate-500">
-          <span>Target Spooler: \\localhost\HP LaserJet Pro MFP M126nw</span>
+          <span>Target Spooler: \\localhost\Auto-Detected Windows Printer (Universal Driver)</span>
           <span>Authentication: Machine Token SHA-256 Validated</span>
         </div>
       </div>
