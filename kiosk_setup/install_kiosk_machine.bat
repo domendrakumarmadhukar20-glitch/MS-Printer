@@ -34,13 +34,14 @@ powercfg -change -monitor-timeout-ac 0
 powercfg -change -hibernate-timeout-ac 0
 echo       [OK] Machine will now run 24/7 uninterrupted without sleeping.
 
-echo [4/6] Checking for HP LaserJet Pro MFP M126nw Printer Driver...
-powershell -Command "Get-Printer | Select-Object Name" | findstr /I "M126" >nul
+echo [4/6] Auto-Detecting Connected Windows Printer (USB / Wi-Fi / LAN)...
+powershell -Command "Get-CimInstance Win32_Printer | Select-Object -ExpandProperty Name" > "%TEMP%\printers.txt"
+findstr /R "." "%TEMP%\printers.txt" >nul
 if %errorLevel% EQU 0 (
-    echo       [OK] HP LaserJet M126nw printer detected!
+    echo       [OK] Connected Windows Printer(s) detected successfully!
+    type "%TEMP%\printers.txt"
 ) else (
-    echo       [WARNING] HP LaserJet Pro MFP M126nw driver not found yet.
-    echo       Ensure the HP printer is connected via USB and drivers are installed.
+    echo       [INFO] Default Windows Print Spooler will auto-route to any newly connected printer.
 )
 
 echo [5/6] Adding Kiosk Auto-Start to Windows Startup Folder...

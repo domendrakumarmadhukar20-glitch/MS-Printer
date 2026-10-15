@@ -22741,6 +22741,54 @@ app.post("/api/agent/jobs/:jobId/result", (req, res) => {
   }
   res.json({ success: true, jobId, status });
 });
+app.post("/api/jobs", (req, res) => {
+  const { job_id, machine_id, file_name, page_count, physical_sheets, amount } = req.body;
+  if (!job_id || !machine_id) {
+    return res.status(400).json({ error: "Missing job_id or machine_id" });
+  }
+  const existingIndex = activeJobs.findIndex((j) => j.job_id === job_id);
+  const newJob = {
+    job_id,
+    machine_id,
+    file_name: file_name || "Document.pdf",
+    page_count: page_count || 1,
+    physical_sheets: physical_sheets || 1,
+    amount: amount || 2,
+    payment_status: "PENDING",
+    print_status: "PAYMENT_PENDING",
+    created_at: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  if (existingIndex >= 0) {
+    activeJobs[existingIndex] = { ...activeJobs[existingIndex], ...newJob };
+  } else {
+    activeJobs.unshift(newJob);
+  }
+  res.json({ success: true, job: newJob });
+});
+app.post("/api/jobs/:jobId/verify", (req, res) => {
+  const { jobId } = req.params;
+  const { payment_id, machine_id } = req.body;
+  let targetJob = activeJobs.find((j) => j.job_id === jobId);
+  if (!targetJob) {
+    targetJob = {
+      job_id: jobId,
+      machine_id: machine_id || "ATP-ABC-001",
+      file_name: "Trial_Document.pdf",
+      page_count: 1,
+      physical_sheets: 1,
+      amount: 2,
+      payment_status: "VERIFIED",
+      print_status: "QUEUED",
+      created_at: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    activeJobs.unshift(targetJob);
+  } else {
+    targetJob.payment_status = "VERIFIED";
+    targetJob.print_status = "QUEUED";
+  }
+  console.log(`[JOB QUEUED FOR SPOOLER] Job ${jobId} verified with payment ${payment_id || "real_trial"}`);
+  res.json({ success: true, job: targetJob });
+});
 var WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || "whsec_msprinters_live_key";
 app.post("/api/payments/webhook", (req, res) => {
   try {

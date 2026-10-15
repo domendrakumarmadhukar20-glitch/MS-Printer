@@ -31,7 +31,9 @@ import {
   HardDrive,
   Monitor,
   Copy,
-  Check
+  Check,
+  MapPin,
+  Navigation
 } from 'lucide-react';
 import { useKiosk } from '../../context/KioskContext';
 import { BRAND_CONFIG } from '../../config/branding';
@@ -39,12 +41,14 @@ import { soundService } from '../../services/soundService';
 import { Advertisement, PricingRule } from '../../types';
 import { getRazorpayConfig, saveRazorpayConfig } from '../../services/razorpayService';
 import { RazorpaySetupGuideModal } from './RazorpaySetupGuideModal';
+import { AddMachineModal } from './AddMachineModal';
 
 export const AdminDashboard: React.FC = () => {
   const {
     machines,
     currentMachine,
     setCurrentMachineId,
+    deleteMachine,
     jobs,
     paperTransactions,
     advertisements,
@@ -63,6 +67,7 @@ export const AdminDashboard: React.FC = () => {
 
   // Admin active sub-tab
   const [adminTab, setAdminTab] = useState<'OVERVIEW' | 'MACHINES' | 'PAPER' | 'ADS' | 'JOBS' | 'PRICING' | 'RAZORPAY' | 'INSTALLER'>('OVERVIEW');
+  const [showAddMachineModal, setShowAddMachineModal] = useState<boolean>(false);
   const [showRzpGuide, setShowRzpGuide] = useState<boolean>(false);
 
   // Razorpay Gateway State
@@ -71,6 +76,7 @@ export const AdminDashboard: React.FC = () => {
   const [rzpKeySecret, setRzpKeySecret] = useState<string>(initialRzp.keySecret || '');
   const [rzpIsLive, setRzpIsLive] = useState<boolean>(initialRzp.isLiveMode);
   const [rzpWebhookSecret, setRzpWebhookSecret] = useState<string>(initialRzp.webhookSecret || 'whsec_live_msprinters');
+  const [rzpMerchantUpiId, setRzpMerchantUpiId] = useState<string>(initialRzp.merchantUpiId || 'msprinters@upi');
   const [rzpSavedMsg, setRzpSavedMsg] = useState<string | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState<boolean>(false);
 
@@ -80,9 +86,10 @@ export const AdminDashboard: React.FC = () => {
       keyId: rzpKeyId.trim(),
       keySecret: rzpKeySecret.trim(),
       isLiveMode: rzpIsLive,
-      webhookSecret: rzpWebhookSecret.trim()
+      webhookSecret: rzpWebhookSecret.trim(),
+      merchantUpiId: rzpMerchantUpiId.trim()
     });
-    setRzpSavedMsg('✓ Razorpay Settings saved successfully! Ready for live checkouts.');
+    setRzpSavedMsg('✓ Razorpay & UPI Settings saved successfully! Ready for live checkouts.');
     setTimeout(() => setRzpSavedMsg(null), 4000);
   };
 
@@ -454,9 +461,24 @@ export const AdminDashboard: React.FC = () => {
       {adminTab === 'MACHINES' && (
         <div className="space-y-6">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white">Configured Kiosk Hardware Units</h2>
-              <span className="text-xs text-slate-400">Showing {machines.length} active kiosks</span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>Configured Kiosk Hardware Units</span>
+                  <span className="text-xs bg-amber-500/10 text-amber-400 font-mono px-2 py-0.5 rounded-full border border-amber-500/20">
+                    {machines.length} Kiosks Active
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-400">सभी मशीनों का हार्डवेयर स्टेटस, भौतिक पता और गूगल मैप्स नेविगेशन लिंक</p>
+              </div>
+
+              <button
+                onClick={() => setShowAddMachineModal(true)}
+                className="bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20 transition-transform active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ नई मशीन जोड़ें (Add Kiosk)</span>
+              </button>
             </div>
 
             <div className="space-y-4">
@@ -473,13 +495,27 @@ export const AdminDashboard: React.FC = () => {
                           <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
                             {m.printerPort}
                           </span>
+                          {m.name && (
+                            <span className="text-xs text-slate-300 font-medium">({m.name})</span>
+                          )}
                         </div>
                         <p className="text-xs text-slate-400">{m.collegeName} • {m.location}</p>
                       </div>
                     </div>
 
-                    {/* Remote Operations */}
-                    <div className="flex items-center gap-2">
+                    {/* Remote Operations & Actions */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <a
+                        href={m.googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Navigation className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Google Maps</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+
                       <button
                         onClick={() => {
                           setSelectedPosterMachine(m);
@@ -506,7 +542,48 @@ export const AdminDashboard: React.FC = () => {
                         <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
                         <span>Restart Agent</span>
                       </button>
+
+                      {machines.length > 1 && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`क्या आप वाकई मशीन "${m.id}" को हटाना चाहते हैं?`)) {
+                              deleteMachine(m.id);
+                            }
+                          }}
+                          className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 p-1.5 rounded-lg transition-colors"
+                          title="मशीन हटाएं (Delete Machine)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
+                  </div>
+
+                  {/* Physical Address & Google Maps Location Box */}
+                  <div className="bg-slate-900/70 p-3.5 rounded-xl border border-slate-800/80 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="text-slate-200 leading-relaxed font-medium">
+                          <strong className="text-amber-400">भौतिक पता:</strong> {m.address}
+                        </p>
+                        {m.landmark && (
+                          <p className="text-[11px] text-amber-300/80">
+                            📌 लैंडमार्क: {m.landmark} {m.contactPhone ? `• हेल्प: ${m.contactPhone}` : ''}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <a
+                      href={m.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-amber-400 hover:text-amber-300 font-mono truncate max-w-xs hover:underline flex items-center gap-1 shrink-0"
+                    >
+                      <Navigation className="w-3 h-3 text-emerald-400" />
+                      <span className="truncate">{m.googleMapsUrl}</span>
+                    </a>
                   </div>
 
                   {/* Machine Diagnostics Bar */}
@@ -1019,6 +1096,24 @@ export const AdminDashboard: React.FC = () => {
               </p>
             </div>
 
+            {/* Merchant UPI ID for Direct Scannable QR & Real Trial */}
+            <div className="space-y-1">
+              <label className="block text-slate-300 font-bold flex items-center justify-between">
+                <span>Merchant UPI ID (डायरेक्ट UPI QR व रियल ट्रायल हेतु):</span>
+                <span className="text-[10px] text-amber-400 font-normal">PhonePe / GPay / Paytm ID</span>
+              </label>
+              <input
+                type="text"
+                value={rzpMerchantUpiId}
+                onChange={(e) => setRzpMerchantUpiId(e.target.value)}
+                placeholder="उदा. 9876543210@paytm या yourname@okaxis"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+              />
+              <p className="text-[11px] text-slate-500">
+                छात्र जब स्टूडेंट पोर्टल पर UPI QR स्कैन करेंगे, तो यह राशि सीधे आपके इस बैंक/UPI खाते में जाएगी।
+              </p>
+            </div>
+
             {/* Key Secret */}
             <div className="space-y-1">
               <label className="block text-slate-300 font-bold">
@@ -1447,6 +1542,12 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Add Machine Modal */}
+      <AddMachineModal
+        isOpen={showAddMachineModal}
+        onClose={() => setShowAddMachineModal(false)}
+      />
     </div>
   );
 };

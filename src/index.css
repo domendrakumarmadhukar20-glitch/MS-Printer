@@ -17,3 +17,43 @@
 .animate-scan {
   animation: scan 2.5s ease-in-out infinite alternate;
 }
+
+/* Professional Print Stylesheet for Windows Spooler & Browser Printing */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide everything on the screen during print */
+  header, footer, nav, button, .no-print {
+    display: none !important;
+  }
+
+  /* Force display of the printable document container */
+  #printable-document {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 20mm !important;
+    box-sizing: border-box !important;
+  }
+
+  #printable-document * {
+    color: #000000 !important;
+    background: transparent !important;
+  }
+}
+
+@media screen {
+  #printable-document {
+    display: none;
+  }
+}

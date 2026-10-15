@@ -9,7 +9,7 @@ cd /d "C:\MSPrintersKiosk"
 :: 1. Launch Python Background Print Spooler Agent if Python is available
 where python >nul 2>&1
 if %errorLevel% EQU 0 (
-    echo [1/2] Starting Background HP M126nw Spooler Agent...
+    echo [1/2] Starting Background Universal Printer Spooler Agent...
     start /min "MS_PRINTERS_SPOOLER" python atp_agent.py
 ) else (
     echo [1/2] Python not detected in PATH. Kiosk will run in Web-Cloud Spool mode.

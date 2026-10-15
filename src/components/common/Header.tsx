@@ -13,11 +13,17 @@ import {
   ChevronDown,
   Sparkles,
   Lock,
-  Unlock
+  Unlock,
+  MapPin,
+  Navigation,
+  Plus,
+  ExternalLink
 } from 'lucide-react';
 import { BRAND_CONFIG } from '../../config/branding';
 import { useKiosk } from '../../context/KioskContext';
 import { soundService } from '../../services/soundService';
+import { MachineLocationModal } from './MachineLocationModal';
+import { AddMachineModal } from '../admin/AddMachineModal';
 
 interface HeaderProps {
   activeTab: 'STUDENT' | 'KIOSK' | 'ADMIN' | 'SIMULATOR' | 'DEPLOY';
@@ -35,6 +41,8 @@ export const Header: React.FC<HeaderProps> = ({
   const { currentMachineId, setCurrentMachineId, machines, currentMachine } = useKiosk();
   const [isMuted, setIsMuted] = useState(soundService.getMuted());
   const [showMachineDropdown, setShowMachineDropdown] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showAddMachineModal, setShowAddMachineModal] = useState(false);
 
   const toggleSound = () => {
     const nextState = !isMuted;
@@ -179,11 +187,12 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden sm:inline">लॉगआउट / लॉक</span>
             </button>
           )}
-          {/* Active Machine Dropdown */}
+          {/* Active Machine Dropdown & Location Info */}
           <div className="relative">
             <button
               onClick={() => setShowMachineDropdown(!showMachineDropdown)}
               className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-xs px-3 py-1.5 rounded-lg text-slate-200 transition-colors"
+              title="मशीन चुनें या पता देखें"
             >
               <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
               <span className="font-mono font-bold text-amber-400">{currentMachine.id}</span>
@@ -191,31 +200,91 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {showMachineDropdown && (
-              <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 z-50">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
-                  Select Kiosk Machine
-                </div>
-                {machines.map((m) => (
+              <div className="absolute right-0 mt-2 w-80 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2.5 z-50 space-y-2">
+                <div className="flex items-center justify-between px-2 py-1 border-b border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>कैंपस कियोस्क मशीनें ({machines.length})</span>
                   <button
-                    key={m.id}
                     onClick={() => {
-                      setCurrentMachineId(m.id);
                       setShowMachineDropdown(false);
+                      setShowLocationModal(true);
                     }}
-                    className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-colors flex flex-col gap-0.5 ${
-                      m.id === currentMachineId ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' : 'text-slate-300 hover:bg-slate-800'
-                    }`}
+                    className="text-amber-400 hover:underline flex items-center gap-1 font-normal"
                   >
-                    <div className="flex items-center justify-between font-mono font-bold">
-                      <span>{m.id}</span>
-                      <span className="text-[10px] text-emerald-400 font-normal">
-                        Paper: {m.paperTray.current_stock}/500
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 truncate">{m.collegeName}</span>
-                    <span className="text-[10px] text-slate-500 truncate">{m.location}</span>
+                    <MapPin className="w-3 h-3" />
+                    <span>मैप्स पता</span>
                   </button>
-                ))}
+                </div>
+
+                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {machines.map((m) => (
+                    <div
+                      key={m.id}
+                      onClick={() => {
+                        setCurrentMachineId(m.id);
+                        setShowMachineDropdown(false);
+                      }}
+                      className={`w-full text-left p-2.5 rounded-xl text-xs transition-colors flex flex-col gap-1 cursor-pointer ${
+                        m.id === currentMachineId ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' : 'bg-slate-950/70 border border-slate-800 hover:bg-slate-800 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-mono font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <span>{m.id}</span>
+                          {m.name && <span className="font-sans text-[11px] font-medium text-slate-200 truncate">({m.name})</span>}
+                        </span>
+                        <span className="text-[10px] text-emerald-400 font-normal">
+                          Paper: {m.paperTray.current_stock}/500
+                        </span>
+                      </div>
+                      
+                      <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
+                        <span className="truncate">{m.address}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px]">
+                        <span className="text-slate-500">{m.location}</span>
+                        <a
+                          href={m.googleMapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 font-bold"
+                        >
+                          <Navigation className="w-2.5 h-2.5" />
+                          <span>Google Maps</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add Machine Quick Action */}
+                <div className="pt-2 border-t border-slate-800 flex gap-1.5">
+                  <button
+                    onClick={() => {
+                      setShowMachineDropdown(false);
+                      setShowAddMachineModal(true);
+                    }}
+                    className="flex-1 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 hover:from-amber-400 hover:to-amber-300 font-black py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ नई मशीन जोड़ें (Add)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowMachineDropdown(false);
+                      setShowLocationModal(true);
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 border border-slate-700 transition-colors"
+                    title="सभी मशीनों की लोकेशन व पता देखें"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                    <span>लोकेशन</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -237,6 +306,19 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Machine Location & Google Maps Navigation Modal */}
+      <MachineLocationModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        onOpenAddMachine={() => setShowAddMachineModal(true)}
+      />
+
+      {/* Add New Kiosk Machine Modal */}
+      <AddMachineModal
+        isOpen={showAddMachineModal}
+        onClose={() => setShowAddMachineModal(false)}
+      />
     </header>
   );
 };

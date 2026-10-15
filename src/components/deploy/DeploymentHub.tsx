@@ -173,8 +173,8 @@ def poll_and_process_jobs():
             with open(temp_path, 'wb') as f:
                 f.write(b"%PDF-1.4 Mock Document Payload Content")
                 
-            # 2. Spool to HP M126nw
-            success = spool_to_hp_printer(temp_path, job)
+            # 2. Spool to Connected Windows Printer
+            success = spool_to_connected_printer(temp_path, job)
             
             # 3. Report completion & deduct paper
             if success:

@@ -134,9 +134,14 @@ export interface KioskTelemetry {
 
 export interface KioskMachine {
   id: string; // e.g. "ATP-ABC-001"
+  name?: string; // Machine display name e.g. "Central Library Kiosk"
   collegeId: string;
   collegeName: string;
   location: string;
+  address: string; // Full physical street/campus address
+  googleMapsUrl: string; // Direct Google Maps navigation URL
+  landmark?: string;
+  contactPhone?: string;
   printerModel: string;
   printerPort: string; // "USB001" or "192.168.1.150"
   telemetry: KioskTelemetry;

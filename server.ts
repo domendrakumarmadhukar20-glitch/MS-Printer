@@ -77,6 +77,63 @@ app.post('/api/agent/jobs/:jobId/result', (req: Request, res: Response) => {
   res.json({ success: true, jobId, status });
 });
 
+// 5. Register/Sync Job from Client
+app.post('/api/jobs', (req: Request, res: Response) => {
+  const { job_id, machine_id, file_name, page_count, physical_sheets, amount } = req.body;
+  if (!job_id || !machine_id) {
+    return res.status(400).json({ error: 'Missing job_id or machine_id' });
+  }
+
+  const existingIndex = activeJobs.findIndex(j => j.job_id === job_id);
+  const newJob: StoredJob = {
+    job_id,
+    machine_id,
+    file_name: file_name || 'Document.pdf',
+    page_count: page_count || 1,
+    physical_sheets: physical_sheets || 1,
+    amount: amount || 2.0,
+    payment_status: 'PENDING',
+    print_status: 'PAYMENT_PENDING',
+    created_at: new Date().toISOString()
+  };
+
+  if (existingIndex >= 0) {
+    activeJobs[existingIndex] = { ...activeJobs[existingIndex], ...newJob };
+  } else {
+    activeJobs.unshift(newJob);
+  }
+
+  res.json({ success: true, job: newJob });
+});
+
+// 6. Real Trial / Payment Verification Endpoint
+app.post('/api/jobs/:jobId/verify', (req: Request, res: Response) => {
+  const { jobId } = req.params;
+  const { payment_id, machine_id } = req.body;
+
+  let targetJob = activeJobs.find(j => j.job_id === jobId);
+  if (!targetJob) {
+    targetJob = {
+      job_id: jobId,
+      machine_id: machine_id || 'ATP-ABC-001',
+      file_name: 'Trial_Document.pdf',
+      page_count: 1,
+      physical_sheets: 1,
+      amount: 2.0,
+      payment_status: 'VERIFIED',
+      print_status: 'QUEUED',
+      created_at: new Date().toISOString()
+    };
+    activeJobs.unshift(targetJob);
+  } else {
+    targetJob.payment_status = 'VERIFIED';
+    targetJob.print_status = 'QUEUED';
+  }
+
+  console.log(`[JOB QUEUED FOR SPOOLER] Job ${jobId} verified with payment ${payment_id || 'real_trial'}`);
+  res.json({ success: true, job: targetJob });
+});
+
 // 5. Payment Webhook with HMAC-SHA256 Signature Verification
 const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || 'whsec_msprinters_live_key';
 

@@ -1,6 +1,6 @@
 /**
- * MS PRINTERS — Razorpay Payment Gateway Service
- * Handles Razorpay Checkout SDK initialization, payment options, and UPI intents
+ * MS PRINTERS — Razorpay & Real UPI Payment Gateway Service
+ * Handles Razorpay Checkout SDK, NPCI UPI QR standards, and Real Trial execution
  */
 
 export interface RazorpayConfig {
@@ -10,13 +10,17 @@ export interface RazorpayConfig {
   themeColor: string;
   isLiveMode: boolean;
   webhookSecret?: string;
+  merchantUpiId: string;      // e.g. "domendrakumarmadhukar20@okaxis" or "9876543210@paytm"
+  merchantUpiName: string;    // e.g. "MS PRINTERS"
 }
 
 const DEFAULT_CONFIG: RazorpayConfig = {
-  keyId: 'rzp_test_MSPrinters2026',
+  keyId: '',
   merchantName: 'MS PRINTERS — Any Time Print',
   themeColor: '#f59e0b', // Amber-500
   isLiveMode: false,
+  merchantUpiId: 'msprinters@upi',
+  merchantUpiName: 'MS PRINTERS',
 };
 
 const STORAGE_KEY = 'msprinters_razorpay_config';
@@ -42,6 +46,17 @@ export function saveRazorpayConfig(config: Partial<RazorpayConfig>): RazorpayCon
     // ignore
   }
   return updated;
+}
+
+/**
+ * Checks whether user has entered a valid, non-placeholder Razorpay API Key ID
+ */
+export function hasValidRazorpayKey(config?: RazorpayConfig): boolean {
+  const cfg = config || getRazorpayConfig();
+  const cleanKey = (cfg.keyId || '').trim();
+  if (!cleanKey) return false;
+  if (cleanKey.includes('MSPrinters2026')) return false;
+  return cleanKey.startsWith('rzp_live_') || cleanKey.startsWith('rzp_test_');
 }
 
 /**
@@ -81,15 +96,23 @@ export interface RazorpayPaymentPayload {
   studentEmail?: string;
   onSuccess: (paymentId: string, orderId: string, signature?: string) => void;
   onFailure: (errorMessage: string) => void;
+  onTrialRequested?: () => void;
 }
 
 /**
- * Opens Razorpay modal or falls back gracefully to simulated/instant UPI
+ * Opens Razorpay modal if live/test key is present, or returns friendly guide for trial / QR
  */
 export async function openRazorpayCheckout(payload: RazorpayPaymentPayload): Promise<void> {
   const config = getRazorpayConfig();
-  const scriptLoaded = await loadRazorpayScript();
+  const isKeyConfigured = hasValidRazorpayKey(config);
 
+  if (!isKeyConfigured) {
+    // Provide a non-blocking graceful notice advising UPI QR or Real Trial bypass
+    payload.onFailure('Razorpay Gateway Key अभी सेट नहीं है। आप सीधे UPI QR कोड स्कैन करके पेमेंट कर सकते हैं, या रियल ट्रायल के लिए "⚡ 1-क्लिक रियल ट्रायल पास करें" दबाएं।');
+    return;
+  }
+
+  const scriptLoaded = await loadRazorpayScript();
   const amountInPaise = Math.round(payload.amountInINR * 100);
 
   if (scriptLoaded && (window as any).Razorpay && config.keyId) {
@@ -124,40 +147,109 @@ export async function openRazorpayCheckout(payload: RazorpayPaymentPayload): Pro
         },
         modal: {
           ondismiss: function () {
-            payload.onFailure('Payment cancelled by user');
+            payload.onFailure('भुगतान रद्द किया गया (Payment was cancelled). आप UPI QR कोड या रियल ट्रायल का उपयोग कर सकते हैं।');
           },
         },
       };
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function (response: any) {
-        payload.onFailure(response.error?.description || 'Razorpay payment failed');
+        payload.onFailure(response.error?.description || 'Razorpay भुगतान प्रोसेस नहीं हो सका');
       });
       rzp.open();
       return;
     } catch (err: any) {
       console.warn('[Razorpay] Checkout modal invocation error:', err);
+      payload.onFailure(err?.message || 'Razorpay Checkout शुरू नहीं हो सका। कृपया UPI QR कोड का उपयोग करें।');
     }
+  } else {
+    payload.onFailure('Razorpay Checkout SDK लोड नहीं हो सका। कृपया UPI QR कोड द्वारा भुगतान करें या रियल ट्रायल पास करें।');
   }
-
-  // Graceful fallback if Razorpay script fails or test key is used
-  console.info('[Razorpay] Utilizing fallback verified gateway');
-  setTimeout(() => {
-    const mockPaymentId = `pay_rzp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    payload.onSuccess(mockPaymentId, payload.orderId, 'sig_' + Math.random().toString(36).substring(2, 10));
-  }, 1200);
 }
 
 /**
- * Builds direct UPI intent link for mobile UPI apps (PhonePe, GPay, Paytm)
+ * Builds standard NPCI compliant UPI URL for QR code & mobile intent
+ * Format: upi://pay?pa=VPA&pn=NAME&am=AMOUNT&cu=INR&tn=NOTE
  */
-export function buildUpiIntentUrl(amount: number, orderId: string, payeeVpa = 'msprinters@upi'): string {
-  const params = new URLSearchParams({
-    pa: payeeVpa,
-    pn: 'MS PRINTERS',
+export function buildUpiIntentUrl(
+  amount: number,
+  orderId: string,
+  payeeVpa?: string,
+  merchantName?: string
+): string {
+  const config = getRazorpayConfig();
+  const vpa = (payeeVpa || config.merchantUpiId || 'msprinters@upi').trim();
+  const name = (merchantName || config.merchantUpiName || 'MS PRINTERS').trim();
+  const cleanOrderId = orderId.replace(/[^a-zA-Z0-9_-]/g, '').slice(-10);
+
+  const params = new URLSearchParams();
+  params.set('pa', vpa);
+  params.set('pn', name);
+  params.set('am', amount.toFixed(2));
+  params.set('cu', 'INR');
+  params.set('tn', `Print-${cleanOrderId}`);
+
+  return `upi://pay?${params.toString()}`;
+}
+
+export interface UpiAppOption {
+  id: string;
+  name: string;
+  iconColor: string;
+  schemeUrl: string;
+  description: string;
+}
+
+/**
+ * Generates app-specific deep links for PhonePe, Google Pay, Paytm, and BHIM
+ */
+export function getAppSpecificUpiLinks(
+  amount: number,
+  orderId: string,
+  payeeVpa?: string,
+  merchantName?: string
+): UpiAppOption[] {
+  const config = getRazorpayConfig();
+  const vpa = (payeeVpa || config.merchantUpiId || 'msprinters@upi').trim();
+  const name = (merchantName || config.merchantUpiName || 'MS PRINTERS').trim();
+  const cleanOrderId = orderId.replace(/[^a-zA-Z0-9_-]/g, '').slice(-10);
+
+  const baseQuery = new URLSearchParams({
+    pa: vpa,
+    pn: name,
     am: amount.toFixed(2),
     cu: 'INR',
-    tn: `Print Job ${orderId}`,
-  });
-  return `upi://pay?${params.toString()}`;
+    tn: `Print-${cleanOrderId}`
+  }).toString();
+
+  return [
+    {
+      id: 'phonepe',
+      name: 'PhonePe',
+      iconColor: '#5f259f',
+      schemeUrl: `phonepe://pay?${baseQuery}`,
+      description: 'PhonePe ऐप में तुरंत खोलें'
+    },
+    {
+      id: 'gpay',
+      name: 'Google Pay',
+      iconColor: '#4285F4',
+      schemeUrl: `tez://upi/pay?${baseQuery}`,
+      description: 'Google Pay (Tez) में खोलें'
+    },
+    {
+      id: 'paytm',
+      name: 'Paytm',
+      iconColor: '#00b9f5',
+      schemeUrl: `paytmmp://pay?${baseQuery}`,
+      description: 'Paytm Wallet & UPI में खोलें'
+    },
+    {
+      id: 'bhim',
+      name: 'BHIM / All UPI',
+      iconColor: '#00843D',
+      schemeUrl: `upi://pay?${baseQuery}`,
+      description: 'कोई भी इंस्टॉल किया हुआ UPI ऐप'
+    }
+  ];
 }

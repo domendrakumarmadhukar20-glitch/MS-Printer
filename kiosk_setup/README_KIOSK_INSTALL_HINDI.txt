@@ -1,6 +1,6 @@
 ================================================================================
 MS PRINTERS — Any Time Print (ATP) कियोस्क मशीन इंस्टालेशन गाइड (हिन्दी)
-कियोस्क हार्डवेयर: Windows 10/11 PC + HP LaserJet Pro MFP M126nw
+कियोस्क हार्डवेयर: Windows 10/11 PC + कोई भी कनेक्टेड प्रिंटर (HP, Canon, Epson, Brother, आदि)
 डोमेन: https://msprinter.in
 ================================================================================
 
@@ -8,10 +8,9 @@ MS PRINTERS — Any Time Print (ATP) कियोस्क मशीन इं�
 
 कदम 1: हार्डवेयर कनेक्शन (Hardware Setup)
 ---------------------------------------
-1. अपने कंप्यूटर को HP LaserJet Pro MFP M126nw प्रिंटर से USB केबल द्वारा जोड़ें।
-2. HP का आधिकारिक प्रिंटर ड्राइवर (HP M126nw Full Feature Driver) इनस्टॉल करें।
-3. Windows Settings -> Devices -> Printers & Scanners में जांचें कि 'HP LaserJet Pro MFP M126nw'
-   प्रिंटर 'Ready / Online' दिख रहा है।
+1. अपने कंप्यूटर को किसी भी प्रिंटर (HP, Canon, Epson, Brother, TVS आदि) से USB, Wi-Fi या LAN केबल द्वारा जोड़ें।
+2. प्रिंटर का आधिकारिक ड्राइवर इनस्टॉल करें और एक टेस्ट पेज निकालकर सुनिश्चित करें कि प्रिंटर काम कर रहा है।
+3. Windows Settings -> Devices -> Printers & Scanners में उस प्रिंटर को 'Set as Default' कर दें।
 4. कंप्यूटर को इंटरनेट (LAN केबल या 4G Wi-Fi डोंगल) से जोड़ें।
 
 कदम 2: कियोस्क 1-क्लिक इंस्टालर चलाएं

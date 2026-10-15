@@ -75,6 +75,10 @@ class SoundService {
     });
   }
 
+  public playSuccessSound() {
+    this.playPaymentSuccessChime();
+  }
+
   /**
    * Play printer feed mechanical sound / pulse
    */

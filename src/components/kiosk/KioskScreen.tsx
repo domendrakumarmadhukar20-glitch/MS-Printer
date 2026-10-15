@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Printer, 
   QrCode, 
@@ -20,12 +20,16 @@ import {
   Sparkles,
   Zap,
   ArrowRight,
-  HardDrive
+  HardDrive,
+  MapPin,
+  Navigation,
+  ExternalLink
 } from 'lucide-react';
 import { useKiosk } from '../../context/KioskContext';
 import { BRAND_CONFIG } from '../../config/branding';
 import { soundService } from '../../services/soundService';
 import { BrandedKioskQRCode } from './BrandedKioskQRCode';
+import { PrintableJobSheet } from '../common/PrintableJobSheet';
 
 export const KioskScreen: React.FC = () => {
   const { 
@@ -65,6 +69,38 @@ export const KioskScreen: React.FC = () => {
   const completedJob = jobs.find(
     j => j.machine_id === currentMachine.id && j.print_status === 'COMPLETED'
   );
+
+  // Auto-print ref for physical printer dispatch on kiosk computer
+  const kioskAutoPrintedRef = useRef<Set<string>>(new Set());
+
+  const handleKioskPhysicalPrint = useCallback(() => {
+    try {
+      soundService.playPrintStartChime();
+    } catch {}
+
+    try {
+      if (typeof window !== 'undefined' && typeof window.print === 'function') {
+        window.print();
+      }
+    } catch (e) {
+      console.warn('Kiosk physical print warning:', e);
+    }
+  }, []);
+
+  // Automatic Print Dispatch when a job enters QUEUED or PRINTING for this kiosk machine
+  useEffect(() => {
+    if (activePrintingJob && (activePrintingJob.print_status === 'PRINTING' || activePrintingJob.print_status === 'QUEUED')) {
+      if (!kioskAutoPrintedRef.current.has(activePrintingJob.job_id)) {
+        kioskAutoPrintedRef.current.add(activePrintingJob.job_id);
+
+        const printTimer = setTimeout(() => {
+          handleKioskPhysicalPrint();
+        }, 500);
+
+        return () => clearTimeout(printTimer);
+      }
+    }
+  }, [activePrintingJob?.job_id, activePrintingJob?.print_status, handleKioskPhysicalPrint]);
 
   // Ad rotation timer effect
   useEffect(() => {
@@ -146,6 +182,21 @@ export const KioskScreen: React.FC = () => {
             <p className="text-xs text-slate-400">
               {currentMachine.collegeName} • <span className="text-amber-400">{currentMachine.location}</span>
             </p>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-300 mt-0.5">
+              <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
+              <span className="truncate max-w-[260px] sm:max-w-xs">{currentMachine.address}</span>
+              <a
+                href={currentMachine.googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30 flex items-center gap-0.5 shrink-0"
+                title="Google Maps में खोलें"
+              >
+                <Navigation className="w-2.5 h-2.5" />
+                <span>Google Maps</span>
+                <ExternalLink className="w-2 h-2" />
+              </a>
+            </div>
           </div>
         </div>
 
@@ -176,6 +227,16 @@ export const KioskScreen: React.FC = () => {
 
         {/* Right Status Badges & Technician Key */}
         <div className="flex items-center gap-3">
+          {/* Quick Real Trial Test Print Button for Operator */}
+          <button
+            onClick={() => triggerRemoteTestPrint(currentMachine.id)}
+            title="मशीन रियल ट्रायल टेस्ट प्रिंट (Real Hardware Test Print)"
+            className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">⚡ रियल ट्रायल प्रिंट</span>
+          </button>
+
           <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-mono">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
             <span className="text-slate-300 font-bold">{currentMachine.id}</span>
@@ -186,7 +247,7 @@ export const KioskScreen: React.FC = () => {
           <button
             onClick={() => setShowMaintenanceModal(true)}
             title="Technician Maintenance Mode"
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl border border-slate-700 transition-colors"
+            className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl border border-slate-700 transition-colors cursor-pointer"
           >
             <KeyRound className="w-4 h-4" />
           </button>
@@ -253,6 +314,18 @@ export const KioskScreen: React.FC = () => {
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-300 flex items-center justify-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
               <span>Please stand by the output tray. Audio notification will chime upon completion.</span>
+            </div>
+
+            {/* Instant Manual Physical Print Trigger */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleKioskPhysicalPrint}
+                className="w-full bg-gradient-to-r from-emerald-500 to-amber-500 hover:from-emerald-400 hover:to-amber-400 text-slate-950 font-black py-3 rounded-2xl shadow-lg shadow-emerald-500/20 text-xs sm:text-sm flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer"
+              >
+                <Printer className="w-4.5 h-4.5 text-slate-950" />
+                <span>🖨️ अभी भौतिक प्रिंटर से प्रिंट निकालें (Physical Print Now)</span>
+              </button>
             </div>
           </div>
 
@@ -344,6 +417,34 @@ export const KioskScreen: React.FC = () => {
                     <h3 className="font-bold text-xs text-white">Collect Fresh Prints from Tray</h3>
                     <p className="text-[11px] text-slate-400">Any connected printer dispenses automatically</p>
                   </div>
+                </div>
+
+                {/* Kiosk Physical Location & Google Maps Link Card */}
+                <div className="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-400 flex items-center gap-1.5 text-xs">
+                      <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                      <span>कियोस्क मशीन का पता (Physical Address):</span>
+                    </span>
+                    <a
+                      href={currentMachine.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-colors"
+                    >
+                      <Navigation className="w-3 h-3 text-emerald-400" />
+                      <span>Google Maps लिंक</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                  <p className="text-slate-300 text-xs leading-relaxed font-medium">
+                    {currentMachine.address}
+                  </p>
+                  {currentMachine.landmark && (
+                    <p className="text-amber-400/80 text-[11px]">
+                      📌 लैंडमार्क: {currentMachine.landmark}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -570,6 +671,12 @@ export const KioskScreen: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Printable Job Sheet for Direct Hardware Output */}
+      <PrintableJobSheet 
+        job={activePrintingJob || completedJob} 
+        machine={currentMachine} 
+      />
     </div>
   );
 };

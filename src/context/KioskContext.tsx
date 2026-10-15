@@ -22,6 +22,25 @@ interface KioskContextType {
   setCurrentMachineId: (id: string) => void;
   currentMachine: KioskMachine;
   machines: KioskMachine[];
+
+  // Machine Fleet Management (Add, Edit, Remove)
+  addNewMachine: (machineData: {
+    id: string;
+    name?: string;
+    collegeId?: string;
+    collegeName: string;
+    location: string;
+    address: string;
+    googleMapsUrl?: string;
+    landmark?: string;
+    contactPhone?: string;
+    printerModel?: string;
+    printerPort?: string;
+    paperStock?: number;
+    paperCapacity?: number;
+  }) => { success: boolean; message: string; machine?: KioskMachine };
+  updateMachine: (machineId: string, updates: Partial<KioskMachine>) => { success: boolean; message: string };
+  deleteMachine: (machineId: string) => { success: boolean; message: string };
   
   // Jobs
   jobs: PrintJob[];
@@ -86,9 +105,14 @@ interface KioskContextType {
 const INITIAL_MACHINES: KioskMachine[] = [
   {
     id: 'ATP-ABC-001',
+    name: 'Central Library Kiosk (Ground Floor)',
     collegeId: 'COLLEGE-ABC',
     collegeName: 'ABC Institute of Technology & Research',
-    location: 'Central Library, Ground Floor',
+    location: 'Central Library, Ground Floor, Gate 1',
+    address: 'Central Library, North Campus, Knowledge Park III, Plot 14, Greater Noida, UP - 201306',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=28.47204,77.48805',
+    landmark: 'Opposite Circulation Desk & Digital Reading Room',
+    contactPhone: '+91 98765 43210',
     printerModel: 'Auto-Connected Windows Printer (Universal Spooler)',
     printerPort: 'Auto-Detect (USB / Wi-Fi / LAN)',
     telemetry: {
@@ -123,9 +147,14 @@ const INITIAL_MACHINES: KioskMachine[] = [
   },
   {
     id: 'ATP-ABC-002',
+    name: 'CS & Engineering Block Kiosk',
     collegeId: 'COLLEGE-ABC',
     collegeName: 'ABC Institute of Technology & Research',
     location: 'Computer Science Dept, 2nd Floor Block B',
+    address: 'Academic Block B, 2nd Floor, Dept of CSE, Knowledge Park III, Greater Noida, UP - 201306',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=28.47352,77.48951',
+    landmark: 'Near Computer Lab 4 & Faculty Staff Room',
+    contactPhone: '+91 98765 43211',
     printerModel: 'Auto-Connected Windows Printer (Universal Spooler)',
     printerPort: 'Auto-Detect (USB / Wi-Fi / LAN)',
     telemetry: {
@@ -160,9 +189,14 @@ const INITIAL_MACHINES: KioskMachine[] = [
   },
   {
     id: 'ATP-DEL-001',
+    name: 'Student Activity Center Kiosk',
     collegeId: 'COLLEGE-DEL',
     collegeName: 'Delhi Knowledge Campus',
     location: 'Student Activity Center, Gate 2',
+    address: 'Student Activity Center (SAC), Gate 2, Delhi Knowledge Campus, Okhla Phase III, New Delhi - 110020',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=28.53551,77.26302',
+    landmark: 'Beside Gate 2 Cafeteria & Helpdesk',
+    contactPhone: '+91 98765 43212',
     printerModel: 'Auto-Connected Windows Printer (Universal Spooler)',
     printerPort: 'Auto-Detect (USB / Wi-Fi / LAN)',
     telemetry: {
@@ -295,7 +329,18 @@ const KioskContext = createContext<KioskContextType | null>(null);
 export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [machines, setMachines] = useState<KioskMachine[]>(() => {
     const loaded = safeGetStorage('msprinters_machines', INITIAL_MACHINES);
-    return Array.isArray(loaded) && loaded.length > 0 ? loaded : INITIAL_MACHINES;
+    const list = Array.isArray(loaded) && loaded.length > 0 ? loaded : INITIAL_MACHINES;
+    return list.map((m: any, idx: number) => {
+      const initMatch = INITIAL_MACHINES.find(im => im.id === m.id);
+      return {
+        ...m,
+        name: m.name || initMatch?.name || `ATP Kiosk Unit #${idx + 1}`,
+        address: m.address || initMatch?.address || `${m.location || 'Campus Center'}, ${m.collegeName || 'Main Campus'}`,
+        googleMapsUrl: m.googleMapsUrl || initMatch?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${m.location || 'Campus Center'}, ${m.collegeName || 'Main Campus'}`)}`,
+        landmark: m.landmark || initMatch?.landmark || '',
+        contactPhone: m.contactPhone || initMatch?.contactPhone || '+91 98765 43210',
+      };
+    });
   });
 
   const [currentMachineId, setCurrentMachineId] = useState<string>('ATP-ABC-001');
@@ -401,6 +446,139 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const currentMachine = (machines && machines.length > 0 ? machines.find(m => m.id === currentMachineId) || machines[0] : null) || INITIAL_MACHINES[0];
+
+  // ================= FLEET / MACHINE MANAGEMENT =================
+  const addNewMachine = useCallback((machineData: {
+    id: string;
+    name?: string;
+    collegeId?: string;
+    collegeName: string;
+    location: string;
+    address: string;
+    googleMapsUrl?: string;
+    landmark?: string;
+    contactPhone?: string;
+    printerModel?: string;
+    printerPort?: string;
+    paperStock?: number;
+    paperCapacity?: number;
+  }) => {
+    const trimmedId = (machineData.id || '').trim().toUpperCase();
+    if (!trimmedId) {
+      return { success: false, message: 'मशीन ID अनिवार्य है (Machine ID is required)!' };
+    }
+    if (machines.some(m => m.id === trimmedId)) {
+      return { success: false, message: `मशीन ID "${trimmedId}" पहले से मौजूद है! (Machine ID already exists)` };
+    }
+
+    const loc = (machineData.location || '').trim() || 'Main Campus';
+    const clg = (machineData.collegeName || '').trim() || 'Campus Center';
+    const addr = (machineData.address || '').trim() || `${loc}, ${clg}`;
+    const mapsUrl = (machineData.googleMapsUrl || '').trim() ||
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc}, ${addr}, ${clg}`)}`;
+
+    const paperMax = Number(machineData.paperCapacity) || 500;
+    const paperCurrent = machineData.paperStock !== undefined ? Number(machineData.paperStock) : 500;
+
+    const newMachine: KioskMachine = {
+      id: trimmedId,
+      name: (machineData.name || '').trim() || `${loc} Kiosk`,
+      collegeId: (machineData.collegeId || '').trim() || `COLLEGE-${trimmedId.replace(/[^A-Z0-9]/g, '')}`,
+      collegeName: clg,
+      location: loc,
+      address: addr,
+      googleMapsUrl: mapsUrl,
+      landmark: (machineData.landmark || '').trim() || '',
+      contactPhone: (machineData.contactPhone || '').trim() || '+91 98765 43210',
+      printerModel: (machineData.printerModel || '').trim() || 'Auto-Connected Windows Printer (Universal Spooler)',
+      printerPort: (machineData.printerPort || '').trim() || 'Auto-Detect (USB / Wi-Fi / LAN)',
+      telemetry: {
+        internetOnline: true,
+        agentOnline: true,
+        printerOnline: true,
+        printerStatus: 'ONLINE',
+        upsBatteryPct: 100,
+        upsMainsConnected: true,
+        upsLoadWatt: 280,
+        cabinetTemperatureC: 32,
+        cabinetDoorClosed: true,
+        coolingFanActive: true,
+        lastHeartbeat: new Date().toISOString(),
+      },
+      paperTray: {
+        id: `TRAY-01-${trimmedId}`,
+        machine_id: trimmedId,
+        printer_id: `PRINTER-${trimmedId}`,
+        tray_name: 'Main Tray 1',
+        paper_size: 'A4',
+        paper_type: '75 GSM Plain White Paper',
+        maximum_capacity: paperMax,
+        current_stock: paperCurrent,
+        low_threshold: 100,
+        critical_threshold: 25,
+        status: 'NORMAL',
+        updated_at: new Date().toISOString(),
+      },
+      activeJobsCount: 0,
+      token: `tok_live_${trimmedId.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Math.random().toString(36).substring(2, 9)}`,
+    };
+
+    setMachines(prev => [...prev, newMachine]);
+
+    // Record initial paper inventory audit
+    setPaperTransactions(prev => [
+      {
+        id: `TX-ADD-M-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        machine_id: trimmedId,
+        printer_id: `PRINTER-${trimmedId}`,
+        tray_id: `TRAY-01-${trimmedId}`,
+        type: 'ADD',
+        amount: newMachine.paperTray.current_stock,
+        opening_stock: 0,
+        closing_stock: newMachine.paperTray.current_stock,
+        admin_name: 'Fleet Admin',
+        reason: 'New Machine Added & Commissioned to Fleet'
+      },
+      ...prev
+    ]);
+
+    addAgentLog('SUCCESS', `नई कियोस्क मशीन जोड़ी गई: ${trimmedId} (${newMachine.collegeName} - ${newMachine.address})`);
+    soundService.playSuccessSound();
+
+    return { success: true, message: `कियोस्क मशीन ${trimmedId} सफलतापूर्वक जोड़ी गई!`, machine: newMachine };
+  }, [machines, addAgentLog]);
+
+  const updateMachine = useCallback((machineId: string, updates: Partial<KioskMachine>) => {
+    setMachines(prev => prev.map(m => {
+      if (m.id === machineId) {
+        return {
+          ...m,
+          ...updates,
+          paperTray: updates.paperTray ? { ...m.paperTray, ...updates.paperTray } : m.paperTray,
+          telemetry: updates.telemetry ? { ...m.telemetry, ...updates.telemetry } : m.telemetry,
+        };
+      }
+      return m;
+    }));
+    addAgentLog('INFO', `कियोस्क मशीन विवरण अपडेट किया गया: ${machineId}`);
+    return { success: true, message: `मशीन ${machineId} सफलतापूर्वक अपडेट हो गई!` };
+  }, [addAgentLog]);
+
+  const deleteMachine = useCallback((machineId: string) => {
+    if (machines.length <= 1) {
+      return { success: false, message: 'कम से कम एक कियोस्क मशीन सक्रिय रहनी चाहिए (Cannot remove last machine)!' };
+    }
+    setMachines(prev => prev.filter(m => m.id !== machineId));
+    if (currentMachineId === machineId) {
+      const remaining = machines.filter(m => m.id !== machineId);
+      if (remaining.length > 0) {
+        setCurrentMachineId(remaining[0].id);
+      }
+    }
+    addAgentLog('WARN', `कियोस्क मशीन हटाई गई: ${machineId}`);
+    return { success: true, message: `मशीन ${machineId} को सफलतापूर्वक हटा दिया गया!` };
+  }, [machines, currentMachineId, addAgentLog]);
 
   // Price Calculation Engine
   const calculatePrice = useCallback((
@@ -807,9 +985,9 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const target = machines.find(m => m.id === machineId);
     if (!target) return;
 
-    createPrintJob(
+    const { job } = createPrintJob(
       {
-        name: 'HP_M126nw_Test_Page_Diagnostics.pdf',
+        name: 'MS_PRINTERS_ATP_Hardware_Test_Page.pdf',
         size: 142000,
         pageCount: 1,
         hash: 'test_hash_' + Date.now()
@@ -821,10 +999,24 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         copies: 1,
         selectedPages: 'ALL'
       },
-      { name: 'Admin Remote Test', phone: '0000000000' }
+      { name: 'Technician Real Trial', phone: '0000000000' }
     );
-    addAgentLog('INFO', `Remote Test Print queued for [${machineId}].`);
-  }, [machines, createPrintJob, addAgentLog]);
+
+    // Immediately verify payment & place in spool queue for real trial
+    const trialPaymentId = `trial_auth_${Date.now()}`;
+    verifyPaymentAndAuthorizePrint(job.job_id, trialPaymentId);
+
+    // Sync to backend API if available
+    try {
+      fetch(`/api/jobs/${job.job_id}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_id: trialPaymentId, machine_id: machineId })
+      }).catch(() => {});
+    } catch {}
+
+    addAgentLog('SUCCESS', `Real Trial Print AUTHORIZED & QUEUED for [${machineId}] on ${target.printerModel}. Spooler dispatching to printer!`);
+  }, [machines, createPrintJob, verifyPaymentAndAuthorizePrint, addAgentLog]);
 
   const restartWindowsAgent = useCallback((machineId: string) => {
     addAgentLog('WARN', `Restarting Windows ATP Agent service on [${machineId}]...`);
@@ -862,7 +1054,7 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           // Play mechanical tick sound
           soundService.playPrintStartChime();
           setJobs(prev => prev.map(j => j.job_id === printingJob.job_id ? { ...j, progress_page: nextPage } : j));
-          addAgentLog('INFO', `[HP M126nw] Spooling page ${nextPage}/${totalPages} of Job #${printingJob.job_id}...`);
+          addAgentLog('INFO', `[${activeMachine.printerModel}] Spooling page ${nextPage}/${totalPages} of Job #${printingJob.job_id}...`);
         } else {
           // Job Completed!
           const sheetsConsumed = printingJob.settings.physicalSheets;
@@ -966,6 +1158,9 @@ export const KioskProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCurrentMachineId,
         currentMachine,
         machines,
+        addNewMachine,
+        updateMachine,
+        deleteMachine,
         jobs,
         createPrintJob,
         calculatePrice,
